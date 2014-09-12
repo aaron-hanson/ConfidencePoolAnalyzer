@@ -30,6 +30,12 @@ namespace ConfidencePoolAnalyzer
                 GameWinners.Add(new GamePick(m.Winner, 0));
             }
 
+            RecalcProbability();
+        }
+
+        public void RecalcProbability()
+        {
+            Probability = 1;
             foreach (GamePick pick in GameWinners)
             {
                 Matchup mh = ConfidencePoolAnalyzer.Matchups.FirstOrDefault(x => String.IsNullOrEmpty(x.Winner) && x.Home.Equals(pick.TeamAbbrev));

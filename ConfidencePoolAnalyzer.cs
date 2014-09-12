@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace ConfidencePoolAnalyzer
 {
@@ -56,6 +57,7 @@ namespace ConfidencePoolAnalyzer
                 BuildWeekPossibilities();
                 CalculateOutcomes();
                 PrintResults();
+                PrintGameChangers();
             }
             catch (Exception ex)
             {
@@ -94,24 +96,32 @@ namespace ConfidencePoolAnalyzer
                     Math.Round(100 * entry.TiedProb, 3) + "\t" +
                     Math.Round(100 * entry.OverallWinProb, 3));
             }
-
             Console.WriteLine();
 
+            //Random rand = new Random();
+            //foreach (Matchup m in Matchups.Where(x => String.IsNullOrEmpty(x.Winner))) m.HomeWinPct = .99;
+            //foreach (WeekPossibility wp in Possibilities) wp.RecalcProbability();
+            //CalculateOutcomes();
+            //overallWinProb = 100 * GetOverallWinProbability();
+            //Console.WriteLine("away teams better by 10%: " + Math.Round(overallWinProb, 3) + "%");
+            //Console.WriteLine();
+        }
+
+        static void PrintGameChangers()
+        {
             foreach (Matchup m in Matchups.Where(x => String.IsNullOrEmpty(x.Winner)))
             {
                 m.Winner = m.Away;
                 BuildWeekPossibilities();
                 CalculateOutcomes();
-                overallWinProb = 100*GetOverallWinProbability();
-                Console.WriteLine(m.Winner + ": " + Math.Round(overallWinProb, 3) + "%");
+                Console.WriteLine(m.Winner + ": " + Math.Round(100 * GetOverallWinProbability(), 3) + "%");
 
                 m.Winner = m.Home;
                 BuildWeekPossibilities();
                 CalculateOutcomes();
-                overallWinProb = 100 * GetOverallWinProbability();
-                Console.WriteLine(m.Winner + ": " + Math.Round(overallWinProb, 3) + "%");
-                Console.WriteLine();
+                Console.WriteLine(m.Winner + ": " + Math.Round(100 * GetOverallWinProbability(), 3) + "%");
 
+                Console.WriteLine();
                 m.Winner = "";
             }
         }
