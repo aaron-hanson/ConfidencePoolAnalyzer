@@ -15,7 +15,7 @@ namespace ConfidencePoolAnalyzer
 
         static void Main()
         {
-            Matchups.Add(new Matchup("PIT", "BAL", .573, "BAL"));
+            Matchups.Add(new Matchup("PIT", "BAL", .573, ""));
             Matchups.Add(new Matchup("DET", "CAR", .550, ""));
             Matchups.Add(new Matchup("ATL", "CIN", .639, ""));
             Matchups.Add(new Matchup("NE", "MIN", .397, ""));
