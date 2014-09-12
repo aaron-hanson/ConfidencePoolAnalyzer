@@ -13,6 +13,11 @@ namespace ConfidencePoolAnalyzer
 
         static void Main()
         {
+
+            double prob = LiveWinProbability.Estimate(28, 14, 0, 30);
+
+
+
             Matchups.Add(new Matchup("PIT", "BAL", .573, "BAL"));
             Matchups.Add(new Matchup("DET", "CAR", .550, ""));
             Matchups.Add(new Matchup("ATL", "CIN", .639, ""));
