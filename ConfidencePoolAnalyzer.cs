@@ -9,11 +9,11 @@ namespace ConfidencePoolAnalyzer
         public static List<Matchup> Matchups = new List<Matchup>();
         public static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
         public static List<WeekPossibility> Possibilities;
-        public static List<string> EntryWinCheck = new List<string> { "Aaron Hanson", "Teresa Mendoz" };
+        public static List<string> EntryWinCheck = new List<string> { "A.J. Smith" };
 
         static void Main()
         {
-            Matchups.Add(new Matchup("PIT", "BAL", .573, ""));
+            Matchups.Add(new Matchup("PIT", "BAL", .573, "BAL"));
             Matchups.Add(new Matchup("DET", "CAR", .550, ""));
             Matchups.Add(new Matchup("ATL", "CIN", .639, ""));
             Matchups.Add(new Matchup("NE", "MIN", .397, ""));
@@ -103,14 +103,14 @@ namespace ConfidencePoolAnalyzer
                 CalculateOutcomes();
                 overallWinProb = 100 * Possibilities.Where(x => x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
                                                             .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
-                Console.WriteLine(m.Winner + ": " + overallWinProb);
+                Console.WriteLine(m.Winner + ": " + Math.Round(overallWinProb, 3) + "%");
 
                 m.Winner = m.Home;
                 BuildWeekPossibilities();
                 CalculateOutcomes();
                 overallWinProb = 100 * Possibilities.Where(x => x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
                                                             .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
-                Console.WriteLine(m.Winner + ": " + overallWinProb + "\n");
+                Console.WriteLine(m.Winner + ": " + Math.Round(overallWinProb, 3) + "%");
 
                 m.Winner = "";
             }
