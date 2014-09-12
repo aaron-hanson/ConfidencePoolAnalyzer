@@ -56,7 +56,9 @@ namespace ConfidencePoolAnalyzer
                 ValidateLists();
                 BuildWeekPossibilities();
                 CalculateOutcomes();
-                PrintResults();
+                //PrintWinningWeekPossibilities();
+                PrintTable();
+                //PrintLiveUpdate();
                 PrintGameChangers();
             }
             catch (Exception ex)
@@ -67,24 +69,27 @@ namespace ConfidencePoolAnalyzer
             Console.ReadLine();
         }
 
-        static void PrintResults()
+        private static void PrintWinningWeekPossibilities()
         {
-            List<string> entriesToPrint = new List<string> { /*"Aaron Hanson"*/ };
+            List<string> entriesToPrint = new List<string> {/*"Aaron Hanson"*/};
             foreach (WeekPossibility wp in Possibilities.Where(x => x.PlayerScores.Count(y => entriesToPrint.Contains(y.Name) && y.Rank == 1) > 0
-                                                                && x.PlayerScores.Count(y => !entriesToPrint.Contains(y.Name) && y.Rank == 1) == 0)
+                                                               && x.PlayerScores.Count(y => !entriesToPrint.Contains(y.Name) && y.Rank == 1) == 0)
                                                         .OrderBy(x => x.Probability)) wp.Print();
+        }
 
-            double overallWinProb = 100*GetOverallWinProbability();
+        private static void PrintTable()
+        {
             Console.WriteLine();
-            Console.WriteLine("Confidence Pool Analysis for:  " + string.Join(" OR ", EntryWinCheck.ConvertAll(x => @"""" + x + @"""")));
-            Console.WriteLine("Overall Win % = " + overallWinProb);
+            Console.WriteLine("Confidence Pool Analysis for:  " +
+                              string.Join(" OR ", EntryWinCheck.ConvertAll(x => @"""" + x + @"""")));
+            Console.WriteLine("Overall Win % = " + 100*GetOverallWinProbability());
             Console.WriteLine();
             Console.WriteLine("Entry Name\tTree\tLikely\tMax\tCur\tRank\tOWin%\tTie%\tWin%");
             Console.WriteLine("-------------------------------------------------------------------------------");
             foreach (PlayerEntry entry in PlayerEntries.OrderByDescending(x => x.WinProb).ThenBy(x => x.WeightedRank))
             {
                 int wins = Possibilities.Count(x => x.PlayerScores.Count(y => y.Name.Equals(entry.Name) && y.Rank == 1) == 1);
-                double pct = (double)wins * 100 / Possibilities.Count();
+                double pct = (double) wins*100/Possibilities.Count();
                 Console.WriteLine(
                     entry.Name.PadRight(13) + "\t"
                     + Math.Round(pct, 2) + "\t" +
@@ -92,19 +97,23 @@ namespace ConfidencePoolAnalyzer
                     entry.MaxScore + "\t" +
                     entry.CurScore + "\t" +
                     Math.Round(entry.WeightedRank, 2) + "\t" +
-                    Math.Round(100 * entry.OutrightWinProb, 3) + "\t" +
-                    Math.Round(100 * entry.TiedProb, 3) + "\t" +
-                    Math.Round(100 * entry.OverallWinProb, 3));
+                    Math.Round(100*entry.OutrightWinProb, 3) + "\t" +
+                    Math.Round(100*entry.TiedProb, 3) + "\t" +
+                    Math.Round(100*entry.OverallWinProb, 3));
             }
             Console.WriteLine();
+        }
 
-            //Random rand = new Random();
-            //foreach (Matchup m in Matchups.Where(x => String.IsNullOrEmpty(x.Winner))) m.HomeWinPct = .99;
-            //foreach (WeekPossibility wp in Possibilities) wp.RecalcProbability();
-            //CalculateOutcomes();
-            //overallWinProb = 100 * GetOverallWinProbability();
-            //Console.WriteLine("away teams better by 10%: " + Math.Round(overallWinProb, 3) + "%");
-            //Console.WriteLine();
+        static void PrintLiveUpdate()
+        {
+            while (true)
+            {
+                Random rand = new Random();
+                foreach (Matchup m in Matchups.Where(x => String.IsNullOrEmpty(x.Winner))) m.HomeWinPct += (rand.NextDouble()/50) - .01;
+                foreach (WeekPossibility wp in Possibilities) wp.RecalcProbability();
+                CalculateOutcomes();
+                PrintTable();
+            }
         }
 
         static void PrintGameChangers()
