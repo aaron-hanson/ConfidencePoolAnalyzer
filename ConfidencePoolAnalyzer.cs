@@ -9,7 +9,7 @@ namespace ConfidencePoolAnalyzer
         public static List<Matchup> Matchups = new List<Matchup>();
         public static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
         public static List<WeekPossibility> Possibilities;
-        public static List<string> EntryWinCheck = new List<string> { "A.J. Smith" };
+        public static List<string> EntryWinCheck = new List<string> { "Aaron Hanson", "Teresa Mendoz" };
 
         static void Main()
         {
@@ -75,9 +75,12 @@ namespace ConfidencePoolAnalyzer
             double overallWinProb = 100 * Possibilities.Where(x => x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
                                                         .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
 
-            Console.WriteLine("\n" + overallWinProb);
-
-            Console.WriteLine("\nEntry Name\tTree\tLikely\tMax\tCur\tRank\tOWin%\tTie%\tWin%\n");
+            Console.WriteLine();
+            Console.WriteLine("Confidence Pool Analysis for:  " + string.Join(" OR ", EntryWinCheck.ConvertAll(x => @"""" + x + @"""")));
+            Console.WriteLine("Overall Win % = " + overallWinProb);
+            Console.WriteLine();
+            Console.WriteLine("Entry Name\tTree\tLikely\tMax\tCur\tRank\tOWin%\tTie%\tWin%");
+            Console.WriteLine("-------------------------------------------------------------------------------");
             foreach (PlayerEntry entry in PlayerEntries.OrderByDescending(x => x.WinProb).ThenBy(x => x.WeightedRank))
             {
                 int wins = Possibilities.Count(x => x.PlayerScores.Count(y => y.Name.Equals(entry.Name) && y.Rank == 1) == 1);
@@ -110,7 +113,8 @@ namespace ConfidencePoolAnalyzer
                 CalculateOutcomes();
                 overallWinProb = 100 * Possibilities.Where(x => x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
                                                             .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
-                Console.WriteLine(m.Winner + ": " + Math.Round(overallWinProb, 3) + "%\n");
+                Console.WriteLine(m.Winner + ": " + Math.Round(overallWinProb, 3) + "%");
+                Console.WriteLine();
 
                 m.Winner = "";
             }
