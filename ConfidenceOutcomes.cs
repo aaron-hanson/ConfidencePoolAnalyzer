@@ -49,8 +49,6 @@ namespace ConfidenceOutcomes
             {
                 ValidateLists();
                 BuildWeekPossibilities();
-                //ComplementSearch();
-                //TeresaSearch();
                 CalculateOutcomes();
                 PrintResults();
             }
