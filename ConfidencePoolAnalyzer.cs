@@ -72,14 +72,7 @@ namespace ConfidencePoolAnalyzer
                                                                 && x.PlayerScores.Count(y => !entriesToPrint.Contains(y.Name) && y.Rank == 1) == 0)
                                                         .OrderBy(x => x.Probability)) wp.Print();
 
-            // both tied for win, no others tied
-            //foreach (WeekPossibility wp in possibilities.Where(x => x.playerScores.Count(y => entriesToPrint.Contains(y.name) && y.rank == 1) == 2
-            //                                                    && x.playerScores.Count(y => !entriesToPrint.Contains(y.name) && y.rank == 1) == 0)
-            //                                            .OrderByDescending(x => x.probability)) wp.print();
-
-            double overallWinProb = 100 * Possibilities.Where(x => x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
-                                                        .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
-
+            double overallWinProb = 100*GetOverallWinProbability();
             Console.WriteLine();
             Console.WriteLine("Confidence Pool Analysis for:  " + string.Join(" OR ", EntryWinCheck.ConvertAll(x => @"""" + x + @"""")));
             Console.WriteLine("Overall Win % = " + overallWinProb);
@@ -109,20 +102,24 @@ namespace ConfidencePoolAnalyzer
                 m.Winner = m.Away;
                 BuildWeekPossibilities();
                 CalculateOutcomes();
-                overallWinProb = 100 * Possibilities.Where(x => x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
-                                                            .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
+                overallWinProb = 100*GetOverallWinProbability();
                 Console.WriteLine(m.Winner + ": " + Math.Round(overallWinProb, 3) + "%");
 
                 m.Winner = m.Home;
                 BuildWeekPossibilities();
                 CalculateOutcomes();
-                overallWinProb = 100 * Possibilities.Where(x => x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
-                                                            .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
+                overallWinProb = 100 * GetOverallWinProbability();
                 Console.WriteLine(m.Winner + ": " + Math.Round(overallWinProb, 3) + "%");
                 Console.WriteLine();
 
                 m.Winner = "";
             }
+        }
+
+        static double GetOverallWinProbability()
+        {
+            return Possibilities.Where(x => x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
+                                .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
         }
 
         static void AddRandomEntries(int numEntries)

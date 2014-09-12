@@ -91,9 +91,9 @@ namespace ConfidencePoolAnalyzer
                 .Sum(x => x.Probability);
 
             WinProb = OutrightWinProb;
-            for (double tnum = 1; tnum < ConfidencePoolAnalyzer.PlayerEntries.Count(); tnum++)
+            for (int tnum = 1; tnum < ConfidencePoolAnalyzer.PlayerEntries.Count(); tnum++)
             {
-                WinProb += (1 / (1 + tnum)) * ConfidencePoolAnalyzer.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) == 1 && x.PlayerScores.Count(y => !y.Name.Equals(Name) && y.Rank == 1) == tnum)
+                WinProb += (1 / (1D + tnum)) * ConfidencePoolAnalyzer.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) == 1 && x.PlayerScores.Count(y => !y.Name.Equals(Name) && y.Rank == 1) == tnum)
                     .Sum(x => x.Probability);
             }
 
