@@ -103,14 +103,14 @@ namespace ConfidencePoolAnalyzer
                 CalculateOutcomes();
                 overallWinProb = 100 * Possibilities.Where(x => x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
                                                             .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
-                Console.WriteLine(m.Winner + ": " + Math.Round(overallWinProb, 3) + "%");
+                Console.WriteLine(m.Winner + ": " + Math.Round(overallWinProb, 3) + " %");
 
                 m.Winner = m.Home;
                 BuildWeekPossibilities();
                 CalculateOutcomes();
                 overallWinProb = 100 * Possibilities.Where(x => x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
                                                             .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
-                Console.WriteLine(m.Winner + ": " + Math.Round(overallWinProb, 3) + "%");
+                Console.WriteLine(m.Winner + ": " + Math.Round(overallWinProb, 3) + " %\n");
 
                 m.Winner = "";
             }
