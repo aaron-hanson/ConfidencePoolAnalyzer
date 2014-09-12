@@ -1,0 +1,120 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace ConfidenceOutcomes
+{
+    class PlayerEntry
+    {
+        public string Name;
+        public List<GamePick> GamePicks;
+
+        public double LikelyScore;
+        public double MaxScore;
+        public double CurScore;
+        public double OutrightWinProb, TiedProb, WinProb, OverallWinProb;
+        public double WeightedRank;
+        public double Probability;
+        public int Bits;
+
+        public PlayerEntry(string name, int bits, params object[] picks)
+        {
+            Name = name;
+            Bits = bits;
+            GamePicks = new List<GamePick>();
+            if (picks != null)
+            {
+                for (int i = 0; i < picks.Length; i += 2)
+                {
+                    GamePicks.Add(new GamePick((string)picks[i], (int)picks[i + 1]));
+                }
+            }
+            else if (Bits >= 0)
+            {
+                int bitsLeft = ConfidenceOutcomes.Matchups.Count();
+                while (bitsLeft > 0)
+                {
+                    Matchup m = ConfidenceOutcomes.Matchups[bitsLeft - 1];
+                    GamePicks.Add((bits & 1) == 1 ? new GamePick(m.Home, 0) : new GamePick(m.Away, 0));
+                    bits >>= 1;
+                    bitsLeft--;
+                }
+            }
+        }
+
+        public void SetProbability()
+        {
+            Probability = 1;
+
+            foreach (GamePick pick in GamePicks)
+            {
+                Matchup mh = ConfidenceOutcomes.Matchups.FirstOrDefault(x => String.IsNullOrEmpty(x.Winner) && x.Home.Equals(pick.TeamAbbrev));
+                Matchup ma = ConfidenceOutcomes.Matchups.FirstOrDefault(x => String.IsNullOrEmpty(x.Winner) && x.Away.Equals(pick.TeamAbbrev));
+                if (mh != null) Probability *= mh.HomeWinPct;
+                else if (ma != null) Probability *= (1 - ma.HomeWinPct);
+            }
+        }
+
+        public double GetScore(WeekPossibility wp)
+        {
+            IEnumerable<string> weekWinners = wp.GameWinners.Select(x => x.TeamAbbrev);
+            return GamePicks.Where(x => weekWinners.Contains(x.TeamAbbrev)).Sum(x => x.Points);
+        }
+
+        public void SetScoreData()
+        {
+            LikelyScore = 0;
+            MaxScore = 0;
+            CurScore = 0;
+
+            foreach (Matchup m in ConfidenceOutcomes.Matchups)
+            {
+                if (!String.IsNullOrEmpty(m.Winner))
+                {
+                    LikelyScore += GamePicks.Where(x => x.TeamAbbrev.Equals(m.Winner)).Sum(x => x.Points);
+                    MaxScore += GamePicks.Where(x => x.TeamAbbrev.Equals(m.Winner)).Sum(x => x.Points);
+                    CurScore += GamePicks.Where(x => x.TeamAbbrev.Equals(m.Winner)).Sum(x => x.Points);
+                }
+                else
+                {
+                    LikelyScore += GamePicks.Where(x => x.TeamAbbrev.Equals(m.Home)).Sum(x => x.Points) * m.HomeWinPct;
+                    LikelyScore += GamePicks.Where(x => x.TeamAbbrev.Equals(m.Away)).Sum(x => x.Points) * (1 - m.HomeWinPct);
+                    MaxScore += GamePicks.Where(x => x.TeamAbbrev.Equals(m.Home) || x.TeamAbbrev.Equals(m.Away)).Sum(x => x.Points);
+                }
+            }
+
+            OutrightWinProb = ConfidenceOutcomes.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) == 1 && x.PlayerScores.Count(y => !y.Name.Equals(Name) && y.Rank == 1) == 0)
+                .Sum(x => x.Probability);
+
+            TiedProb = ConfidenceOutcomes.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) == 1 && x.PlayerScores.Count(y => !y.Name.Equals(Name) && y.Rank == 1) > 0)
+                .Sum(x => x.Probability);
+
+            WinProb = OutrightWinProb;
+            for (double tnum = 1; tnum < ConfidenceOutcomes.PlayerEntries.Count(); tnum++)
+            {
+                WinProb += (1 / (1 + tnum)) * ConfidenceOutcomes.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) == 1 && x.PlayerScores.Count(y => !y.Name.Equals(Name) && y.Rank == 1) == tnum)
+                    .Sum(x => x.Probability);
+            }
+
+            OverallWinProb = ConfidenceOutcomes.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) > 0)
+                .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
+
+            WeightedRank = ConfidenceOutcomes.Possibilities.Select(x => x.PlayerScores.Where(y => y.Name.Equals(Name)).Sum(z => z.WeightedRank)).Sum();
+        }
+
+        public override string ToString()
+        {
+            StringBuilder buf = new StringBuilder();
+            buf.Append("(");
+            buf.Append(Bits);
+            buf.Append(") ");
+            foreach (GamePick pick in GamePicks.OrderBy(x => 0 - x.Points))
+            {
+                buf.Append(pick.TeamAbbrev);
+                buf.Append(" ");
+            }
+            return buf.ToString();
+        }
+    }
+}
