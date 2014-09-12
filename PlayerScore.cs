@@ -1,4 +1,4 @@
-namespace ConfidenceOutcomes
+namespace ConfidencePoolAnalyzer
 {
     class PlayerScore
     {

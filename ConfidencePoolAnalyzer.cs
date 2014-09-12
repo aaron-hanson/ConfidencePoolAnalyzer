@@ -4,9 +4,9 @@ using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 
-namespace ConfidenceOutcomes
+namespace ConfidencePoolAnalyzer
 {
-    class ConfidenceOutcomes
+    class ConfidencePoolAnalyzer
     {
         public static List<Matchup> Matchups = new List<Matchup>();
         public static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
@@ -15,34 +15,36 @@ namespace ConfidenceOutcomes
 
         static void Main()
         {
-            Matchups.Add(new Matchup("GB", "SEA", .651, "SEA"));
-            Matchups.Add(new Matchup("BUF", "CHI", .725, "BUF"));
-            Matchups.Add(new Matchup("OAK", "NYJ", .685, "NYJ"));
-            Matchups.Add(new Matchup("TEN", "KC", .588, "TEN"));
-            Matchups.Add(new Matchup("MIN", "STL", .605, "MIN"));
-            Matchups.Add(new Matchup("JAC", "PHI", .792, "PHI"));
-            Matchups.Add(new Matchup("WAS", "HOU", .609, "HOU"));
-            Matchups.Add(new Matchup("CLE", "PIT", .685, "PIT"));
-            Matchups.Add(new Matchup("NE", "MIA", .340, "MIA"));
-            Matchups.Add(new Matchup("CIN", "BAL", .525, "CIN"));
-            Matchups.Add(new Matchup("NO", "ATL", .364, "ATL"));
-            Matchups.Add(new Matchup("CAR", "TB", .497, "CAR"));
-            Matchups.Add(new Matchup("SF", "DAL", .348, "SF"));
-            Matchups.Add(new Matchup("IND", "DEN", .775, ""));
-            Matchups.Add(new Matchup("NYG", "DET", .779, ""));
-            Matchups.Add(new Matchup("SD", "ARI", .615, ""));
+            Matchups.Add(new Matchup("PIT", "BAL", .573, "BAL"));
+            Matchups.Add(new Matchup("DET", "CAR", .550, ""));
+            Matchups.Add(new Matchup("ATL", "CIN", .639, ""));
+            Matchups.Add(new Matchup("NE", "MIN", .397, ""));
+            Matchups.Add(new Matchup("DAL", "TEN", .592, ""));
+            Matchups.Add(new Matchup("JAC", "WAS", .725, ""));
+            Matchups.Add(new Matchup("ARI", "NYG", .480, ""));
+            Matchups.Add(new Matchup("MIA", "BUF", .443, ""));
+            Matchups.Add(new Matchup("NO", "CLE", .345, ""));
+            Matchups.Add(new Matchup("STL", "TB", .686, ""));
+            Matchups.Add(new Matchup("SEA", "SD", .306, ""));
+            Matchups.Add(new Matchup("KC", "DEN", .809, ""));
+            Matchups.Add(new Matchup("NYJ", "GB", .715, ""));
+            Matchups.Add(new Matchup("HOU", "OAK", .428, ""));
+            Matchups.Add(new Matchup("CHI", "SF", .709, ""));
+            Matchups.Add(new Matchup("PHI", "IND", .564, ""));
 
-            PlayerEntries.Add(new PlayerEntry("Aaron Hanson", -1, "SEA", 6, "CHI", 8, "NYJ", 10, "TEN", 1, "STL", 12, "PHI", 14, "HOU", 13, "PIT", 7, "NE", 5, "BAL", 3, "NO", 2, "TB", 4, "SF", 9, "DEN", 15, "DET", 16, "ARI", 11));
-            PlayerEntries.Add(new PlayerEntry("Christopher P", -1, "SEA", 8, "CHI", 16, "NYJ", 6, "KC", 15, "MIN", 9, "PHI", 11, "HOU", 4, "PIT", 7, "NE", 12, "BAL", 1, "NO", 14, "CAR", 3, "SF", 13, "DEN", 10, "DET", 2, "ARI", 5));
-            PlayerEntries.Add(new PlayerEntry("Collin Shapir", -1, "SEA", 11, "CHI", 7, "OAK", 16, "KC", 14, "MIN", 6, "PHI", 13, "WAS", 12, "PIT", 15, "NE", 5, "BAL", 1, "NO", 4, "CAR", 9, "SF", 8, "DEN", 10, "DET", 3, "ARI", 2));
-            PlayerEntries.Add(new PlayerEntry("Desmond Hui", -1, "SEA", 12, "CHI", 16, "OAK", 4, "KC", 11, "STL", 3, "PHI", 14, "WAS", 2, "PIT", 15, "NE", 10, "CIN", 1, "ATL", 6, "TB", 7, "SF", 9, "DEN", 13, "DET", 8, "SD", 5));
-            PlayerEntries.Add(new PlayerEntry("Jessica Kopic", -1, "SEA", 16, "CHI", 14, "NYJ", 7, "KC", 11, "MIN", 4, "PHI", 15, "HOU", 2, "PIT", 12, "NE", 9, "BAL", 3, "NO", 6, "CAR", 1, "SF", 8, "DEN", 10, "DET", 13, "ARI", 5));
-            PlayerEntries.Add(new PlayerEntry("Khayam Masud", -1, "SEA", 16, "CHI", 15, "NYJ", 14, "KC", 13, "STL", 12, "PHI", 11, "HOU", 10, "PIT", 9, "NE", 8, "BAL", 7, "NO", 6, "TB", 5, "SF", 4, "DEN", 3, "DET", 2, "ARI", 1));
-            PlayerEntries.Add(new PlayerEntry("Marc Levine", -1, "SEA", 11, "CHI", 15, "OAK", 2, "KC", 8, "STL", 1, "PHI", 16, "WAS", 7, "PIT", 14, "NE", 13, "BAL", 4, "NO", 10, "CAR", 6, "SF", 5, "DEN", 12, "DET", 9, "SD", 3));
-            PlayerEntries.Add(new PlayerEntry("Marisol Magan", -1, "SEA", 4, "CHI", 16, "NYJ", 10, "KC", 9, "MIN", 5, "PHI", 14, "HOU", 3, "PIT", 13, "NE", 12, "BAL", 1, "NO", 8, "CAR", 2, "SF", 6, "DEN", 7, "DET", 11, "ARI", 15));
-            PlayerEntries.Add(new PlayerEntry("Paul Nix", -1, "SEA", 14, "CHI", 15, "NYJ", 13, "KC", 8, "MIN", 5, "PHI", 11, "HOU", 9, "PIT", 12, "NE", 7, "BAL", 4, "NO", 2, "TB", 3, "SF", 10, "DEN", 16, "DET", 6, "SD", 1));
-            PlayerEntries.Add(new PlayerEntry("Teresa Mendoz", -1, "SEA", 12, "CHI", 13, "NYJ", 11, "KC", 15, "MIN", 5, "PHI", 16, "WAS", 2, "PIT", 6, "NE", 10, "CIN", 1, "NO", 9, "CAR", 3, "SF", 7, "DEN", 14, "DET", 8, "ARI", 4));
-            
+            PlayerEntries.Add(new PlayerEntry("Aaron Hanson", -1, "BAL", 14, "CAR", 11, "CIN", 13, "NE", 2, "TEN", 6, "WAS", 15, "NYG", 7, "MIA", 4, "NO", 3, "TB", 8, "SEA", 10, "DEN", 16, "GB", 9, "OAK", 5, "SF", 12, "PHI", 1));
+            PlayerEntries.Add(new PlayerEntry("A.J. Smith", -1, "BAL", 3, "DET", 1, "CIN", 7, "NE", 14, "DAL", 5, "WAS", 8, "ARI", 10, "BUF", 6, "NO", 12, "TB", 11, "SEA", 13, "DEN", 16, "GB", 15, "HOU", 4, "SF", 9, "IND", 2));
+            PlayerEntries.Add(new PlayerEntry("Antonio Cerda", -1, "PIT", 16, "DET", 15, "ATL", 14, "NE", 13, "TEN", 12, "WAS", 11, "ARI", 2, "MIA", 9, "NO", 8, "TB", 7, "SEA", 6, "DEN", 5, "GB", 4, "HOU", 3, "CHI", 10, "IND", 1));
+            PlayerEntries.Add(new PlayerEntry("ashley chambe", -1, "PIT", 9, "DET", 2, "CIN", 3, "NE", 10, "TEN", 7, "WAS", 6, "ARI", 8, "BUF", 1, "NO", 12, "TB", 13, "SEA", 15, "DEN", 16, "GB", 11, "HOU", 5, "SF", 14, "IND", 4));
+            PlayerEntries.Add(new PlayerEntry("Chris Vodicka", -1, "PIT", 16, "CAR", 3, "CIN", 6, "NE", 11, "TEN", 8, "JAC", 5, "ARI", 12, "BUF", 4, "NO", 13, "TB", 7, "SEA", 14, "DEN", 15, "GB", 9, "HOU", 2, "SF", 10, "PHI", 1));
+            PlayerEntries.Add(new PlayerEntry("Desmond Hui", -1, "BAL", 10, "CAR", 6, "CIN", 7, "NE", 12, "DAL", 3, "JAC", 2, "NYG", 1, "MIA", 8, "NO", 13, "TB", 11, "SEA", 15, "DEN", 16, "GB", 14, "OAK", 4, "SF", 9, "PHI", 5));
+            PlayerEntries.Add(new PlayerEntry("Jessica Kopic", -1, "PIT", 2, "DET", 15, "CIN", 3, "NE", 9, "TEN", 8, "WAS", 7, "ARI", 5, "MIA", 1, "NO", 12, "TB", 10, "SEA", 11, "DEN", 16, "GB", 13, "HOU", 4, "SF", 14, "IND", 6));
+            PlayerEntries.Add(new PlayerEntry("Khayam Masud", -1, "PIT", 4, "DET", 5, "CIN", 9, "NE", 10, "TEN", 7, "JAC", 11, "ARI", 3, "MIA", 2, "NO", 13, "TB", 8, "SEA", 12, "DEN", 16, "GB", 14, "HOU", 1, "SF", 15, "IND", 6));
+            PlayerEntries.Add(new PlayerEntry("kurt n", -1, "PIT", 1, "CAR", 2, "CIN", 4, "NE", 14, "DAL", 7, "WAS", 8, "ARI", 9, "MIA", 3, "NO", 15, "TB", 12, "SEA", 13, "DEN", 10, "GB", 16, "HOU", 11, "SF", 6, "IND", 5));
+            PlayerEntries.Add(new PlayerEntry("Marisol Magan", -1, "PIT", 10, "DET", 8, "CIN", 3, "NE", 5, "TEN", 1, "WAS", 11, "ARI", 4, "MIA", 9, "NO", 16, "TB", 6, "SEA", 12, "DEN", 14, "GB", 15, "HOU", 7, "SF", 2, "IND", 13));
+            PlayerEntries.Add(new PlayerEntry("Paul Nix", -1, "BAL", 5, "DET", 9, "ATL", 7, "NE", 6, "TEN", 10, "JAC", 3, "ARI", 8, "MIA", 2, "NO", 15, "TB", 4, "SEA", 16, "KC", 13, "GB", 14, "HOU", 11, "SF", 12, "IND", 1));
+            PlayerEntries.Add(new PlayerEntry("Teresa Mendoz", -1, "BAL", 6, "CAR", 12, "CIN", 5, "NE", 13, "TEN", 4, "WAS", 3, "NYG", 2, "BUF", 8, "NO", 15, "STL", 1, "SEA", 11, "DEN", 14, "GB", 7, "OAK", 9, "SF", 16, "IND", 10));
+
             AddRandomEntries(0);
 
             try
@@ -154,7 +156,6 @@ namespace ConfidenceOutcomes
                         double adj = (Math.Sqrt(Math.Abs(orig)) * sign + 1) / 2;
 
                         int pointidx = (int)(adj * points.Count());
-                        //int pointidx = rand.Next(points.Count());
                         int pointval = points[pointidx];
                         points.RemoveAt(pointidx);
                         picks.Add(pointval);

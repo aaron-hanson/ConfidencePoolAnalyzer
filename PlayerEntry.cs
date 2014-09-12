@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace ConfidenceOutcomes
+namespace ConfidencePoolAnalyzer
 {
     class PlayerEntry
     {
@@ -32,10 +32,10 @@ namespace ConfidenceOutcomes
             }
             else if (Bits >= 0)
             {
-                int bitsLeft = ConfidenceOutcomes.Matchups.Count();
+                int bitsLeft = ConfidencePoolAnalyzer.Matchups.Count();
                 while (bitsLeft > 0)
                 {
-                    Matchup m = ConfidenceOutcomes.Matchups[bitsLeft - 1];
+                    Matchup m = ConfidencePoolAnalyzer.Matchups[bitsLeft - 1];
                     GamePicks.Add((bits & 1) == 1 ? new GamePick(m.Home, 0) : new GamePick(m.Away, 0));
                     bits >>= 1;
                     bitsLeft--;
@@ -49,8 +49,8 @@ namespace ConfidenceOutcomes
 
             foreach (GamePick pick in GamePicks)
             {
-                Matchup mh = ConfidenceOutcomes.Matchups.FirstOrDefault(x => String.IsNullOrEmpty(x.Winner) && x.Home.Equals(pick.TeamAbbrev));
-                Matchup ma = ConfidenceOutcomes.Matchups.FirstOrDefault(x => String.IsNullOrEmpty(x.Winner) && x.Away.Equals(pick.TeamAbbrev));
+                Matchup mh = ConfidencePoolAnalyzer.Matchups.FirstOrDefault(x => String.IsNullOrEmpty(x.Winner) && x.Home.Equals(pick.TeamAbbrev));
+                Matchup ma = ConfidencePoolAnalyzer.Matchups.FirstOrDefault(x => String.IsNullOrEmpty(x.Winner) && x.Away.Equals(pick.TeamAbbrev));
                 if (mh != null) Probability *= mh.HomeWinPct;
                 else if (ma != null) Probability *= (1 - ma.HomeWinPct);
             }
@@ -68,7 +68,7 @@ namespace ConfidenceOutcomes
             MaxScore = 0;
             CurScore = 0;
 
-            foreach (Matchup m in ConfidenceOutcomes.Matchups)
+            foreach (Matchup m in ConfidencePoolAnalyzer.Matchups)
             {
                 if (!String.IsNullOrEmpty(m.Winner))
                 {
@@ -84,23 +84,23 @@ namespace ConfidenceOutcomes
                 }
             }
 
-            OutrightWinProb = ConfidenceOutcomes.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) == 1 && x.PlayerScores.Count(y => !y.Name.Equals(Name) && y.Rank == 1) == 0)
+            OutrightWinProb = ConfidencePoolAnalyzer.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) == 1 && x.PlayerScores.Count(y => !y.Name.Equals(Name) && y.Rank == 1) == 0)
                 .Sum(x => x.Probability);
 
-            TiedProb = ConfidenceOutcomes.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) == 1 && x.PlayerScores.Count(y => !y.Name.Equals(Name) && y.Rank == 1) > 0)
+            TiedProb = ConfidencePoolAnalyzer.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) == 1 && x.PlayerScores.Count(y => !y.Name.Equals(Name) && y.Rank == 1) > 0)
                 .Sum(x => x.Probability);
 
             WinProb = OutrightWinProb;
-            for (double tnum = 1; tnum < ConfidenceOutcomes.PlayerEntries.Count(); tnum++)
+            for (double tnum = 1; tnum < ConfidencePoolAnalyzer.PlayerEntries.Count(); tnum++)
             {
-                WinProb += (1 / (1 + tnum)) * ConfidenceOutcomes.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) == 1 && x.PlayerScores.Count(y => !y.Name.Equals(Name) && y.Rank == 1) == tnum)
+                WinProb += (1 / (1 + tnum)) * ConfidencePoolAnalyzer.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) == 1 && x.PlayerScores.Count(y => !y.Name.Equals(Name) && y.Rank == 1) == tnum)
                     .Sum(x => x.Probability);
             }
 
-            OverallWinProb = ConfidenceOutcomes.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) > 0)
+            OverallWinProb = ConfidencePoolAnalyzer.Possibilities.Where(x => x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) > 0)
                 .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => y.Name.Equals(Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
 
-            WeightedRank = ConfidenceOutcomes.Possibilities.Select(x => x.PlayerScores.Where(y => y.Name.Equals(Name)).Sum(z => z.WeightedRank)).Sum();
+            WeightedRank = ConfidencePoolAnalyzer.Possibilities.Select(x => x.PlayerScores.Where(y => y.Name.Equals(Name)).Sum(z => z.WeightedRank)).Sum();
         }
 
         public override string ToString()

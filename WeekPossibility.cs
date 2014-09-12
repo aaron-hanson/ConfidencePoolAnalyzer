@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ConfidenceOutcomes
+namespace ConfidencePoolAnalyzer
 {
     class WeekPossibility
     {
@@ -14,7 +14,7 @@ namespace ConfidenceOutcomes
         {
             GameWinners = new List<GamePick>();
             PlayerScores = new List<PlayerScore>();
-            List<Matchup> matchupsLeft = ConfidenceOutcomes.Matchups.Where(x => String.IsNullOrEmpty(x.Winner)).ToList();
+            List<Matchup> matchupsLeft = ConfidencePoolAnalyzer.Matchups.Where(x => String.IsNullOrEmpty(x.Winner)).ToList();
             
             int bitsLeft = matchupsLeft.Count();
             while (bitsLeft > 0)
@@ -25,15 +25,15 @@ namespace ConfidenceOutcomes
                 bitsLeft--;
             }
 
-            foreach (Matchup m in ConfidenceOutcomes.Matchups.Where(x => !String.IsNullOrEmpty(x.Winner)))
+            foreach (Matchup m in ConfidencePoolAnalyzer.Matchups.Where(x => !String.IsNullOrEmpty(x.Winner)))
             {
                 GameWinners.Add(new GamePick(m.Winner, 0));
             }
 
             foreach (GamePick pick in GameWinners)
             {
-                Matchup mh = ConfidenceOutcomes.Matchups.FirstOrDefault(x => String.IsNullOrEmpty(x.Winner) && x.Home.Equals(pick.TeamAbbrev));
-                Matchup ma = ConfidenceOutcomes.Matchups.FirstOrDefault(x => String.IsNullOrEmpty(x.Winner) && x.Away.Equals(pick.TeamAbbrev));
+                Matchup mh = ConfidencePoolAnalyzer.Matchups.FirstOrDefault(x => String.IsNullOrEmpty(x.Winner) && x.Home.Equals(pick.TeamAbbrev));
+                Matchup ma = ConfidencePoolAnalyzer.Matchups.FirstOrDefault(x => String.IsNullOrEmpty(x.Winner) && x.Away.Equals(pick.TeamAbbrev));
                 if (mh != null) Probability *= mh.HomeWinPct;
                 else if (ma != null) Probability *= (1 - ma.HomeWinPct);
             }
@@ -42,7 +42,7 @@ namespace ConfidenceOutcomes
         public void CalcPlayerScores()
         {
             PlayerScores.Clear();
-            foreach (PlayerEntry entry in ConfidenceOutcomes.PlayerEntries)
+            foreach (PlayerEntry entry in ConfidencePoolAnalyzer.PlayerEntries)
             {
                 PlayerScores.Add(new PlayerScore(entry.Name, entry.GetScore(this)));
             }
@@ -58,7 +58,7 @@ namespace ConfidenceOutcomes
         {
             //Console.Write("AH=" + playerScores.Where(x => x.name.Equals("Aaron Hanson")).First().rank + " TM=" + playerScores.Where(x => x.name.Equals("Teresa Mendoz")).First().rank + " ");
             Console.Write("(" + Math.Round(100 * Probability, 3) + "): ");
-            foreach (GamePick gp in GameWinners.Where(x => !ConfidenceOutcomes.Matchups.Select(y => y.Winner).Contains(x.TeamAbbrev)))
+            foreach (GamePick gp in GameWinners.Where(x => !ConfidencePoolAnalyzer.Matchups.Select(y => y.Winner).Contains(x.TeamAbbrev)))
             {
                 Console.Write(gp.TeamAbbrev + "/");
             }

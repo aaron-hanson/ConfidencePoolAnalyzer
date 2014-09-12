@@ -1,7 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConfidenceOutcomes", "ConfidenceOutcomes.csproj", "{96513084-B1B8-4D21-8F7A-5FCB5828D64A}"
+# Visual Studio Express 2013 for Windows Desktop
+VisualStudioVersion = 12.0.30723.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConfidencePoolAnalyzer", "ConfidencePoolAnalyzer.csproj", "{96513084-B1B8-4D21-8F7A-5FCB5828D64A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
