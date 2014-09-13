@@ -9,14 +9,14 @@ namespace ConfidencePoolAnalyzer
     {
         public static List<Matchup> Matchups = new List<Matchup>();
         public static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
-        public static List<WeekPossibility> Possibilities;
+        public static List<WeekPossibility> Possibilities = new List<WeekPossibility>();
         public static List<string> EntryWinCheck = new List<string> { "Aaron Hanson", "Teresa Mendoz" };
 
         private static int LiveUpdatePollDelay = 15000;
 
         static void Main()
         {
-            Matchups.Add(new Matchup("PIT", "BAL", .573, "BAL"));
+            Matchups.Add(new Matchup("PIT", "BAL", .573, ""));
             Matchups.Add(new Matchup("DET", "CAR", .550, ""));
             Matchups.Add(new Matchup("ATL", "CIN", .639, ""));
             Matchups.Add(new Matchup("NE", "MIN", .397, ""));
@@ -52,11 +52,13 @@ namespace ConfidencePoolAnalyzer
             {
                 ValidateLists();
                 BuildWeekPossibilities();
-                CalculateOutcomes();
-                //PrintWinningWeekPossibilities();
+                
                 PrintLiveUpdate();
+
+                //CalculateOutcomes();
                 //PrintTable();
                 //PrintGameChangers();
+                //PrintWinningWeekPossibilities();
             }
             catch (Exception ex)
             {
@@ -103,11 +105,25 @@ namespace ConfidencePoolAnalyzer
 
         static void PrintLiveUpdate()
         {
+            //TODO: maybe consolidate setting of winners and win probabilities into one loop over Matches
+            bool rebuildNeeded;
             while (true)
             {
                 LiveNFLData.Instance.Scrape();
+                List<NFLGame> finals = LiveNFLData.Instance.GetFinalGames();
+                rebuildNeeded = false;
+                foreach (NFLGame final in finals)
+                {
+                    Matchup m = Matchups.FirstOrDefault(x => x.Home == final.Home && x.Away == final.Away && x.Winner != final.Winner);
+                    if (m == null) continue;
+                    rebuildNeeded = true;
+                    m.Winner = final.Winner;
+                }
                 foreach (Matchup m in Matchups) m.HomeWinPct = LiveNFLData.Instance.GetLiveWinProbabilityForMatchup(m);
-                foreach (WeekPossibility wp in Possibilities) wp.RecalcProbability();
+
+                if (rebuildNeeded) BuildWeekPossibilities();
+                else foreach (WeekPossibility wp in Possibilities) wp.RecalcProbability();
+
                 CalculateOutcomes();
                 PrintTable();
                 Thread.Sleep(LiveUpdatePollDelay);
@@ -189,7 +205,7 @@ namespace ConfidencePoolAnalyzer
 
         static void BuildWeekPossibilities()
         {
-            Possibilities = new List<WeekPossibility>();
+            Possibilities.Clear();
 
             int gamesLeft = Matchups.Count(x => String.IsNullOrEmpty(x.Winner));
             int max = (int)Math.Pow(2, gamesLeft) - 1;
@@ -199,8 +215,8 @@ namespace ConfidencePoolAnalyzer
         static void CalculateOutcomes()
         {
             // now calc entry scores and whatnot
-            foreach (WeekPossibility week in Possibilities) week.CalcPlayerScores();
-            foreach (PlayerEntry entry in PlayerEntries) entry.SetScoreData();
+            Possibilities.ForEach(x => x.CalcPlayerScores());
+            PlayerEntries.ForEach(x => x.SetScoreData());
         }
 
         static void ValidateLists()

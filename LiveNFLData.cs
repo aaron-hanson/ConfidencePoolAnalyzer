@@ -58,6 +58,12 @@ namespace ConfidencePoolAnalyzer
             return LiveWinProbability.Estimate(awayScore, homeScore, spread, minRemaining);
         }
 
+        public List<NFLGame> GetFinalGames()
+        {
+            if (ScoreStrip == null || ScoreStrip.Games == null) return new List<NFLGame>();
+            return ScoreStrip.Games.Where(x => x.Quarter == "F").ToList();
+        }
+
         public void Scrape()
         {
             //TODO: don't blindly overwrite Odds, so we can keep last known odds
@@ -86,6 +92,8 @@ namespace ConfidencePoolAnalyzer
             if (Quarter == "F") LiveHomeWinProbability = (HomeScore > AwayScore ? 1 : 0);
             else LiveHomeWinProbability = LiveWinProbability.Estimate(AwayScore, HomeScore, Spread, Quarter == "P" ? 60 : MinutesLeft);
         }
+
+        public string Winner { get {return (Quarter != "F" ? "" : (HomeScore > AwayScore ? Home : Away));} }
 
         [XmlAttribute("q")] 
         public string Quarter { get; set; }
