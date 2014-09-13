@@ -51,18 +51,6 @@ namespace ConfidencePoolAnalyzer
             catch (Exception) {}
         }
 
-        public List<NFLGame> GetFinalGames()
-        {
-            if (ScoreStrip == null || ScoreStrip.Games == null) return new List<NFLGame>();
-            return ScoreStrip.Games.Where(x => x.Quarter == "F").ToList();
-        }
-
-        public string ListAllScores()
-        {
-            if (ScoreStrip == null || ScoreStrip.Games == null) return String.Empty;
-            return string.Join(" | ", ScoreStrip.Games.Select(x => x.ToString()));
-        }
-
         public void Scrape()
         {
             //TODO: don't blindly overwrite Odds/games, so we can keep last known odds/games

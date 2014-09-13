@@ -5,11 +5,11 @@ namespace ConfidencePoolAnalyzer
     static class LiveWinProbability
     {
         //TODO: what about overtime, what will the minutesRemaining be like?
-        public static double Estimate(int awayScore, int homeScore, double homeSpread, int minutesRemaining)
+        public static double Estimate(int awayScore, int homeScore, double homeSpread, double minutesRemaining)
         {
             const double stdev = 13.45;
             int margin = awayScore - homeScore;
-            double minRem = minutesRemaining / 60D;
+            double minRem = minutesRemaining / 60;
             double revRem = 1 / minRem;
 
             double result = (1 - NormDist(margin + 0.5, -homeSpread * minRem, stdev / Math.Sqrt(revRem), true))
