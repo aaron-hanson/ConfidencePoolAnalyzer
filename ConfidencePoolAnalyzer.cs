@@ -55,7 +55,7 @@ namespace ConfidencePoolAnalyzer
                 ValidateLists();
                 BuildWeekPossibilities();
                 
-                PrintLiveUpdate();
+                LiveUpdateMode();
 
                 //CalculateOutcomes();
                 //PrintTable();
@@ -91,49 +91,48 @@ namespace ConfidencePoolAnalyzer
             {
                 int wins = Possibilities.Count(x => x.PlayerScores.Count(y => y.Name.Equals(entry.Name) && y.Rank == 1) == 1);
                 double pct = (double) wins*100/Possibilities.Count();
-                //TODO:  String.Format(...)
-                Console.WriteLine(
-                    entry.Name.PadRight(13) + "\t"
-                    + Math.Round(pct, 2) + "\t" +
-                    Math.Round(entry.LikelyScore) + "\t" +
-                    entry.MaxScore + "\t" +
-                    entry.CurScore + "\t" +
-                    Math.Round(entry.WeightedRank, 2) + "\t" +
-                    Math.Round(100*entry.OutrightWinProb, 3) + "\t" +
-                    Math.Round(100*entry.TiedProb, 3) + "\t" +
-                    Math.Round(100*entry.OverallWinProb, 3));
+                Console.WriteLine(String.Format("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}",
+                    entry.Name.PadRight(13),
+                    + Math.Round(pct, 2),
+                    Math.Round(entry.LikelyScore),
+                    entry.MaxScore,
+                    entry.CurScore,
+                    Math.Round(entry.WeightedRank, 2),
+                    Math.Round(100*entry.OutrightWinProb, 3),
+                    Math.Round(100*entry.TiedProb, 3),
+                    Math.Round(100*entry.OverallWinProb, 3)));
             }
             Console.WriteLine();
         }
 
-        static void PrintLiveUpdate()
+        static void LiveUpdateMode()
         {
-            //TODO: maybe consolidate setting of winners and win probabilities into one loop over Matches
-            bool rebuildNeeded;
             while (true)
             {
-                //TODO: maybe logic to clear winners if the NFL feed removes one,
-                //      in which case just loop over all NFLGames instead of finals
                 LiveNFLData.Instance.Scrape();
-                List<NFLGame> finals = LiveNFLData.Instance.GetFinalGames();
-                rebuildNeeded = false;
-                foreach (NFLGame final in finals)
+                Matchups.ForEach(x => LiveNFLData.Instance.UpdateMatchup(x));
+                if (Matchups.Any(x => x.IsDirty))
                 {
-                    Matchup m = Matchups.FirstOrDefault(x => x.Home == final.Home && x.Away == final.Away && x.Winner != final.Winner);
-                    if (m == null) continue;
-                    rebuildNeeded = true;
-                    m.Winner = final.Winner;
+                    Console.WriteLine("UPDATED: " + DateTime.Now.ToString());
+                    Console.WriteLine();
+
+                    Matchups.Where(x => x.IsDirty).ToList().ForEach(x => x.Recalc());
+                    if (Matchups.Any(x => x.IsWinnerDirty))
+                    {
+                        BuildWeekPossibilities();
+                        Matchups.ForEach(x => x.IsWinnerDirty = false);
+                    }
+                    else if (Matchups.Any(x => x.IsWinPctDirty))
+                    {
+                        Possibilities.ForEach(x => x.RecalcProbability());
+                        Matchups.ForEach(x => x.IsWinPctDirty = false);
+                    }
+
+                    Matchups.ForEach(x => Console.WriteLine(x));
+
+                    CalculateOutcomes();
+                    PrintTable();
                 }
-
-                Console.WriteLine(LiveNFLData.Instance.ListAllScores());
-
-                foreach (Matchup m in Matchups) m.HomeWinPct = LiveNFLData.Instance.GetLiveWinProbabilityForMatchup(m);
-
-                if (rebuildNeeded) BuildWeekPossibilities();
-                else foreach (WeekPossibility wp in Possibilities) wp.RecalcProbability();
-
-                CalculateOutcomes();
-                PrintTable();
                 Thread.Sleep(LiveUpdatePollDelay);
             }
         }

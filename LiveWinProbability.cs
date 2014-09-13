@@ -4,6 +4,7 @@ namespace ConfidencePoolAnalyzer
 {
     static class LiveWinProbability
     {
+        //TODO: what about overtime, what will the minutesRemaining be like?
         public static double Estimate(int awayScore, int homeScore, double homeSpread, int minutesRemaining)
         {
             const double stdev = 13.45;

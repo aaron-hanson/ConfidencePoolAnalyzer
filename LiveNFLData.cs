@@ -32,30 +32,23 @@ namespace ConfidencePoolAnalyzer
             Client.Dispose();
         }
 
-        public double GetLiveWinProbabilityForMatchup(Matchup m)
+        public void UpdateMatchup(Matchup m)
         {
-            NFLGame game = null;
-            Event odds = null;
-            int homeScore = 0;
-            int awayScore = 0;
-            int minRemaining = 60;
-            double spread = 0;
-
             try {
-                game = ScoreStrip.Games.First(x => x.Home.Equals(m.Home) && x.Away.Equals(m.Away));
-                awayScore = game.AwayScore;
-                homeScore = game.HomeScore;
-                if (game.Quarter == "F") return homeScore > awayScore ? 1 : 0; //TODO: account for ties?
+                NFLGame game = ScoreStrip.Games.First(x => x.Home.Equals(m.Home) && x.Away.Equals(m.Away));
+                m.AwayScore = game.AwayScore;
+                m.HomeScore = game.HomeScore;
+                m.Quarter = game.Quarter;
+                m.TimeLeft = game.TimeLeft;
             }
             catch (Exception) {}
 
             try {
-                odds = Odds.Events.First(x => x.Participants.Any(y => y.Abbrev.Equals(m.Home)));
-                spread = odds.Periods.First(x => x.PeriodNumber == 0).Spread.SpreadHome;
+                double spread = Odds.Events.First(x => x.Participants.Any(y => y.Name.Equals(m.Home)))
+                    .Periods.First(x => x.PeriodNumber == 0).Spread.SpreadHome;
+                m.Spread = spread;
             }
             catch (Exception) {}
-
-            return LiveWinProbability.Estimate(awayScore, homeScore, spread, minRemaining);
         }
 
         public List<NFLGame> GetFinalGames()
@@ -72,9 +65,17 @@ namespace ConfidencePoolAnalyzer
 
         public void Scrape()
         {
-            //TODO: don't blindly overwrite Odds, so we can keep last known odds
-            Odds = (PinnacleOdds)OddsSerializer.Deserialize(Client.OpenRead(@"http://xml.pinnaclesports.com/pinnacleFeed.aspx?sporttype=Football&sportsubtype=NFL"));
-            ScoreStrip = (NFLScoreStrip)NFLSerializer.Deserialize(Client.OpenRead(@"http://www.nfl.com/liveupdate/scorestrip/ss.xml"));
+            //TODO: don't blindly overwrite Odds/games, so we can keep last known odds/games
+            try
+            {
+                Odds = (PinnacleOdds)OddsSerializer.Deserialize(Client.OpenRead(@"http://xml.pinnaclesports.com/pinnacleFeed.aspx?sporttype=Football&sportsubtype=NFL"));
+            }
+            catch (Exception) { }
+            try
+            {
+                ScoreStrip = (NFLScoreStrip)NFLSerializer.Deserialize(Client.OpenRead(@"http://www.nfl.com/liveupdate/scorestrip/ss.xml"));
+            }
+            catch (Exception) { }
         }
         
     }
@@ -89,23 +90,6 @@ namespace ConfidencePoolAnalyzer
 
     public class NFLGame
     {
-        public double Spread { get; set; }
-        public int MinutesLeft { get; set; }
-        public double LiveHomeWinProbability { get; set; }
-
-        public void SetProbability()
-        {
-            if (Quarter == "F") LiveHomeWinProbability = (HomeScore > AwayScore ? 1 : 0);
-            else LiveHomeWinProbability = LiveWinProbability.Estimate(AwayScore, HomeScore, Spread, Quarter == "P" ? 60 : MinutesLeft);
-        }
-
-        public string Winner { get {return (Quarter != "F" ? "" : (HomeScore > AwayScore ? Home : Away));} }
-
-        public override string ToString()
-        {
-            return String.Format("{0} {1}-{2} {3}", Away, AwayScore, HomeScore, Home);
-        }
-
         [XmlAttribute("q")] 
         public string Quarter { get; set; }
 
@@ -152,27 +136,25 @@ namespace ConfidencePoolAnalyzer
 
     public class Participant
     {
+        private string _name;
         [XmlElement("participant_name")]
-        public string Name { get; set; }
-        public string Abbrev
-        {
-            get
-            {
-                switch (Name)
+        public string Name {
+            get { return _name; }
+            set {
+                switch (value)
                 {
-                    case "New York Giants": return "NYG";
-                    case "New Englang Patriots": return "NE";
-                    case "New Orleans Saints": return "NO";
-                    case "Saint Louis Rams": return "STL";
-                    case "Tampa Bay Buccaneers": return "TB";
-                    case "San Diego Chargers": return "SD";
-                    case "New York Jets": return "NYJ";
-                    case "Green Bay Packers": return "GB";
-                    case "Kansas City Chiefs": return "KC";
-                    case "San Francisco 49ers": return "SF";
-                    default: return Name.Substring(0,3).ToUpper();
+                    case "New York Giants": _name = "NYG"; break;
+                    case "New Englang Patriots": _name = "NE"; break;
+                    case "New Orleans Saints": _name = "NO"; break;
+                    case "Saint Louis Rams": _name = "STL"; break;
+                    case "Tampa Bay Buccaneers": _name = "TB"; break;
+                    case "San Diego Chargers": _name = "SD"; break;
+                    case "New York Jets": _name = "NYJ"; break;
+                    case "Green Bay Packers": _name = "GB"; break;
+                    case "Kansas City Chiefs": _name = "KC"; break;
+                    case "San Francisco 49ers": _name = "SF"; break;
+                    default: _name = value.Substring(0, 3).ToUpper(); break;
                 }
-                        
             }
         }
 
