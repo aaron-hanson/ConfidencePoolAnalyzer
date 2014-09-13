@@ -64,6 +64,12 @@ namespace ConfidencePoolAnalyzer
             return ScoreStrip.Games.Where(x => x.Quarter == "F").ToList();
         }
 
+        public string ListAllScores()
+        {
+            if (ScoreStrip == null || ScoreStrip.Games == null) return String.Empty;
+            return string.Join(" | ", ScoreStrip.Games.Select(x => x.ToString()));
+        }
+
         public void Scrape()
         {
             //TODO: don't blindly overwrite Odds, so we can keep last known odds
@@ -94,6 +100,11 @@ namespace ConfidencePoolAnalyzer
         }
 
         public string Winner { get {return (Quarter != "F" ? "" : (HomeScore > AwayScore ? Home : Away));} }
+
+        public override string ToString()
+        {
+            return String.Format("{0} {1}-{2} {3}", Away, AwayScore, HomeScore, Home);
+        }
 
         [XmlAttribute("q")] 
         public string Quarter { get; set; }

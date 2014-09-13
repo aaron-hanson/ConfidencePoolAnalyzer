@@ -16,6 +16,8 @@ namespace ConfidencePoolAnalyzer
 
         static void Main()
         {
+            //TODO:  autoload matchups from NFL api
+
             Matchups.Add(new Matchup("PIT", "BAL", .573, ""));
             Matchups.Add(new Matchup("DET", "CAR", .550, ""));
             Matchups.Add(new Matchup("ATL", "CIN", .639, ""));
@@ -89,6 +91,7 @@ namespace ConfidencePoolAnalyzer
             {
                 int wins = Possibilities.Count(x => x.PlayerScores.Count(y => y.Name.Equals(entry.Name) && y.Rank == 1) == 1);
                 double pct = (double) wins*100/Possibilities.Count();
+                //TODO:  String.Format(...)
                 Console.WriteLine(
                     entry.Name.PadRight(13) + "\t"
                     + Math.Round(pct, 2) + "\t" +
@@ -109,6 +112,8 @@ namespace ConfidencePoolAnalyzer
             bool rebuildNeeded;
             while (true)
             {
+                //TODO: maybe logic to clear winners if the NFL feed removes one,
+                //      in which case just loop over all NFLGames instead of finals
                 LiveNFLData.Instance.Scrape();
                 List<NFLGame> finals = LiveNFLData.Instance.GetFinalGames();
                 rebuildNeeded = false;
@@ -119,6 +124,9 @@ namespace ConfidencePoolAnalyzer
                     rebuildNeeded = true;
                     m.Winner = final.Winner;
                 }
+
+                Console.WriteLine(LiveNFLData.Instance.ListAllScores());
+
                 foreach (Matchup m in Matchups) m.HomeWinPct = LiveNFLData.Instance.GetLiveWinProbabilityForMatchup(m);
 
                 if (rebuildNeeded) BuildWeekPossibilities();
