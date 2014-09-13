@@ -4,19 +4,22 @@ namespace ConfidencePoolAnalyzer
 {
     public class Matchup
     {
+        private readonly string _away;
+        public string Away { get { return _away; } }
+
+        private readonly string _home;
+        public string Home { get { return _home; } }
+
         public bool IsDirty { get; set; }
-
-        public string Away { get; set; }
-        public string Home { get; set; }
-
         public bool IsWinnerDirty { get; set; }
+        public bool IsWinPctDirty { get; set; }
+
         private string _winner;
         public string Winner {
             get { return _winner; }
             set { if (value != _winner) { _winner = value; IsWinnerDirty = true; } }
         }
 
-        public bool IsWinPctDirty { get; set; }
         private double _homeWinPct;
         public double HomeWinPct
         {
@@ -68,8 +71,8 @@ namespace ConfidencePoolAnalyzer
 
         public Matchup(string away, string home, double homeWinPct, string winner = "")
         {
-            Away = away;
-            Home = home;
+            _away = away;
+            _home = home;
             HomeWinPct = homeWinPct;
             Winner = winner;
             Spread = 0;
@@ -97,14 +100,14 @@ namespace ConfidencePoolAnalyzer
 
         public override string ToString()
         {
-            return string.Format("{0} {1}-{2} {3} {4}\t{5}\t{6}",
+            return string.Format("{0}\t{1} {2}-{3} {4} {5}\t{6}",
+                (Quarter == "F" ? "FINAL" : (Quarter == "P" ? "PREGAME" : TimeLeft + " " + Quarter)).PadRight(7),
                 Away.PadLeft(3),
                 AwayScore.ToString().PadLeft(2),
                 HomeScore.ToString().PadRight(2),
                 Home.PadRight(3),
-                (Spread > 0 ? "+" + Spread : (Spread == 0 ? "PK" : Spread.ToString())).PadRight(9),
-                (Quarter == "F" ? "FINAL" : (Quarter == "P" ? "PREGAME" : TimeLeft + " " + Quarter)).PadRight(7),
-                Math.Round(HomeWinPct, 3)
+                Spread.ToString("+0.0;-0.0;PK").PadLeft(5),
+                Math.Round(HomeWinPct, 4).ToString("0.00%").PadLeft(7)
                 );
         }
 
