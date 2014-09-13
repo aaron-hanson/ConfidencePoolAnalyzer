@@ -13,17 +13,18 @@ namespace ConfidencePoolAnalyzer
     public class LiveNFLData : IDisposable
     {
         private WebClient Client;
-        private XmlSerializer Serializer;
+        private XmlSerializer NFLSerializer, OddsSerializer;
+        private PinnacleOdds Odds;
+        private NFLScoreStrip ScoreStrip;
 
         private static readonly Lazy<LiveNFLData> instance = new Lazy<LiveNFLData>(() => new LiveNFLData());
         public static LiveNFLData Instance { get { return instance.Value; } }
 
-        public NFLScoreStrip Scores;
-
         private LiveNFLData()
         {
             Client = new WebClient();
-            Serializer = new XmlSerializer(typeof(NFLScoreStrip));
+            NFLSerializer = new XmlSerializer(typeof(NFLScoreStrip));
+            OddsSerializer = new XmlSerializer(typeof(PinnacleOdds));
         }
 
         public void Dispose()
@@ -31,10 +32,37 @@ namespace ConfidencePoolAnalyzer
             Client.Dispose();
         }
 
+        public double GetLiveWinProbabilityForMatchup(Matchup m)
+        {
+            NFLGame game = null;
+            Event odds = null;
+            int homeScore = 0;
+            int awayScore = 0;
+            int minRemaining = 60;
+            double spread = 0;
+
+            try {
+                game = ScoreStrip.Games.First(x => x.Home.Equals(m.Home) && x.Away.Equals(m.Away));
+                awayScore = game.AwayScore;
+                homeScore = game.HomeScore;
+                if (game.Quarter == "F") return homeScore > awayScore ? 1 : 0; //TODO: account for ties?
+            }
+            catch (Exception) {}
+
+            try {
+                odds = Odds.Events.First(x => x.Participants.Any(y => y.Abbrev.Equals(m.Home)));
+                spread = odds.Periods.First(x => x.PeriodNumber == 0).Spread.SpreadHome;
+            }
+            catch (Exception) {}
+
+            return LiveWinProbability.Estimate(awayScore, homeScore, spread, minRemaining);
+        }
+
         public void Scrape()
         {
-            NFLScoreStrip ss = (NFLScoreStrip)Serializer.Deserialize(Client.OpenRead(@"http://www.nfl.com/liveupdate/scorestrip/ss.xml"));
-            foreach (NFLGame game in ss.GameList.Games) game.SetProbability();
+            //TODO: don't blindly overwrite Odds, so we can keep last known odds
+            Odds = (PinnacleOdds)OddsSerializer.Deserialize(Client.OpenRead(@"http://xml.pinnaclesports.com/pinnacleFeed.aspx?sporttype=Football&sportsubtype=NFL"));
+            ScoreStrip = (NFLScoreStrip)NFLSerializer.Deserialize(Client.OpenRead(@"http://www.nfl.com/liveupdate/scorestrip/ss.xml"));
         }
         
     }
@@ -42,24 +70,21 @@ namespace ConfidencePoolAnalyzer
     [XmlRoot("ss")]
     public class NFLScoreStrip
     {
-        [XmlElement("gms")]
-        public NFLGameList GameList { get; set; }
-    }
-
-    public class NFLGameList
-    {
-        [XmlElement("g")]
+        [XmlArray("gms")]
+        [XmlArrayItem("g")]
         public List<NFLGame> Games { get; set; }
     }
 
     public class NFLGame
     {
+        public double Spread { get; set; }
+        public int MinutesLeft { get; set; }
         public double LiveHomeWinProbability { get; set; }
 
         public void SetProbability()
         {
             if (Quarter == "F") LiveHomeWinProbability = (HomeScore > AwayScore ? 1 : 0);
-            else LiveHomeWinProbability = LiveWinProbability.Estimate(AwayScore, HomeScore, 0, 60);
+            else LiveHomeWinProbability = LiveWinProbability.Estimate(AwayScore, HomeScore, Spread, Quarter == "P" ? 60 : MinutesLeft);
         }
 
         [XmlAttribute("q")] 
@@ -82,6 +107,74 @@ namespace ConfidencePoolAnalyzer
 
         [XmlAttribute("vs")]
         public int AwayScore { get; set; }        
+    }
+
+    [XmlRoot("pinnacle_line_feed")]
+    public class PinnacleOdds
+    {
+        [XmlArray("events")]
+        [XmlArrayItem("event")]
+        public List<Event> Events { get; set; }
+    }
+
+    public class Event
+    {
+        [XmlElement("league")]
+        public string League { get; set; }
+
+        [XmlArray("participants")]
+        [XmlArrayItem("participant")]
+        public List<Participant> Participants { get; set; }
+
+        [XmlArray("periods")]
+        [XmlArrayItem("period")]
+        public List<Period> Periods { get; set; }
+    }
+
+    public class Participant
+    {
+        [XmlElement("participant_name")]
+        public string Name { get; set; }
+        public string Abbrev
+        {
+            get
+            {
+                switch (Name)
+                {
+                    case "New York Giants": return "NYG";
+                    case "New Englang Patriots": return "NE";
+                    case "New Orleans Saints": return "NO";
+                    case "Saint Louis Rams": return "STL";
+                    case "Tampa Bay Buccaneers": return "TB";
+                    case "San Diego Chargers": return "SD";
+                    case "New York Jets": return "NYJ";
+                    case "Green Bay Packers": return "GB";
+                    case "Kansas City Chiefs": return "KC";
+                    case "San Francisco 49ers": return "SF";
+                    default: return Name.Substring(0,3).ToUpper();
+                }
+                        
+            }
+        }
+
+        [XmlElement("visiting_home_draw")]
+        public string HomeVisiting { get; set; }
+        public bool IsHome { get { return HomeVisiting == "Home"; } }   
+    }
+
+    public class Period
+    {
+        [XmlElement("period_number")]
+        public int PeriodNumber { get; set; }
+
+        [XmlElement("spread")]
+        public Spread Spread { get; set; }
+    }
+
+    public class Spread
+    {
+        [XmlElement("spread_home")]
+        public double SpreadHome { get; set; }
     }
 
 }

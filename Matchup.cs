@@ -1,6 +1,6 @@
 namespace ConfidencePoolAnalyzer
 {
-    class Matchup
+    public class Matchup
     {
         public string Away, Home;
         public string Winner;

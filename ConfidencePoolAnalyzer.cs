@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace ConfidencePoolAnalyzer
 {
@@ -11,14 +12,10 @@ namespace ConfidencePoolAnalyzer
         public static List<WeekPossibility> Possibilities;
         public static List<string> EntryWinCheck = new List<string> { "Aaron Hanson", "Teresa Mendoz" };
 
+        private static int LiveUpdatePollDelay = 15000;
+
         static void Main()
         {
-
-            double prob = LiveWinProbability.Estimate(28, 14, 0, 30);
-
-            LiveNFLData.Instance.Scrape();
-
-
             Matchups.Add(new Matchup("PIT", "BAL", .573, "BAL"));
             Matchups.Add(new Matchup("DET", "CAR", .550, ""));
             Matchups.Add(new Matchup("ATL", "CIN", .639, ""));
@@ -57,9 +54,9 @@ namespace ConfidencePoolAnalyzer
                 BuildWeekPossibilities();
                 CalculateOutcomes();
                 //PrintWinningWeekPossibilities();
-                PrintTable();
-                //PrintLiveUpdate();
-                PrintGameChangers();
+                PrintLiveUpdate();
+                //PrintTable();
+                //PrintGameChangers();
             }
             catch (Exception ex)
             {
@@ -108,11 +105,12 @@ namespace ConfidencePoolAnalyzer
         {
             while (true)
             {
-                Random rand = new Random();
-                foreach (Matchup m in Matchups.Where(x => String.IsNullOrEmpty(x.Winner))) m.HomeWinPct += (rand.NextDouble()/50) - .01;
+                LiveNFLData.Instance.Scrape();
+                foreach (Matchup m in Matchups) m.HomeWinPct = LiveNFLData.Instance.GetLiveWinProbabilityForMatchup(m);
                 foreach (WeekPossibility wp in Possibilities) wp.RecalcProbability();
                 CalculateOutcomes();
                 PrintTable();
+                Thread.Sleep(LiveUpdatePollDelay);
             }
         }
 
