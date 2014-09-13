@@ -7,12 +7,12 @@ namespace ConfidencePoolAnalyzer
 {
     class ConfidencePoolAnalyzer
     {
+        private const int _liveUpdatePollDelay = 60000;
+        
         public static List<Matchup> Matchups = new List<Matchup>();
         public static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
         public static List<WeekPossibility> Possibilities = new List<WeekPossibility>();
         public static List<string> EntryWinCheck = new List<string> { "Aaron Hanson", "Teresa Mendoz" };
-
-        private static int LiveUpdatePollDelay = 15000;
 
         static void Main()
         {
@@ -133,7 +133,7 @@ namespace ConfidencePoolAnalyzer
                     CalculateOutcomes();
                     PrintTable();
                 }
-                Thread.Sleep(LiveUpdatePollDelay);
+                Thread.Sleep(_liveUpdatePollDelay);
             }
         }
 

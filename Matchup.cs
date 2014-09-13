@@ -1,3 +1,5 @@
+using System;
+
 namespace ConfidencePoolAnalyzer
 {
     public class Matchup
@@ -95,15 +97,14 @@ namespace ConfidencePoolAnalyzer
 
         public override string ToString()
         {
-            return string.Format("{0} {1}-{2} {3} {4}\t{5} {6}\t{7}",
+            return string.Format("{0} {1}-{2} {3} {4}\t{5}\t{6}",
                 Away.PadLeft(3),
                 AwayScore.ToString().PadLeft(2),
                 HomeScore.ToString().PadRight(2),
                 Home.PadRight(3),
                 (Spread > 0 ? "+" + Spread : (Spread == 0 ? "PK" : Spread.ToString())).PadRight(9),
-                TimeLeft,
-                Quarter,
-                HomeWinPct
+                (Quarter == "F" ? "FINAL" : (Quarter == "P" ? "PREGAME" : TimeLeft + " " + Quarter)).PadRight(7),
+                Math.Round(HomeWinPct, 3)
                 );
         }
 
