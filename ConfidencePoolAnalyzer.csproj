@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="ConfidencePoolAnalyzer.cs" />
     <Compile Include="GamePick.cs" />
+    <Compile Include="LiveNFLData.cs" />
     <Compile Include="LiveWinProbability.cs" />
     <Compile Include="Matchup.cs" />
     <Compile Include="PlayerEntry.cs" />

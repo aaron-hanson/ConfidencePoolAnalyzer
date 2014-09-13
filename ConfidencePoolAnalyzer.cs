@@ -16,6 +16,7 @@ namespace ConfidencePoolAnalyzer
 
             double prob = LiveWinProbability.Estimate(28, 14, 0, 30);
 
+            LiveNFLData.Instance.Scrape();
 
 
             Matchups.Add(new Matchup("PIT", "BAL", .573, "BAL"));
