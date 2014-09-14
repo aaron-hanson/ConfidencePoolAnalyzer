@@ -87,9 +87,9 @@ namespace ConfidencePoolAnalyzer
                 {
                     Console.WriteLine("UPDATED: " + DateTime.Now);
                     Console.WriteLine();
+                    Matchups.Where(x => x.IsDirty).ToList().ForEach(x => x.Recalc());
                     Matchups.ForEach(Console.WriteLine);
 
-                    Matchups.Where(x => x.IsDirty).ToList().ForEach(x => x.Recalc());
                     if (Matchups.Any(x => x.IsWinnerDirty))
                     {
                         BuildWeekPossibilities();
