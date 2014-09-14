@@ -29,6 +29,49 @@ namespace ConfidencePoolAnalyzer
             _client.Dispose();
         }
 
+        public void Scrape()
+        {
+            //TODO: don't blindly overwrite Odds/games, so we can keep last known odds/games
+            try
+            {
+                if (_client != null)
+                {
+                    _odds = (PinnacleOdds)_oddsSerializer.Deserialize(_client.OpenRead(@"http://xml.pinnaclesports.com/pinnacleFeed.aspx?sporttype=Football&sportsubtype=NFL"));
+                    _odds.Events.RemoveAll(x => !x.IsValidNflGame);
+                }
+            }
+            catch { }
+            try
+            {
+                if (_client != null)
+                    _scoreStrip = (NflScoreStrip)_nflSerializer.Deserialize(_client.OpenRead(@"http://www.nfl.com/liveupdate/scorestrip/ss.xml"));
+            }
+            catch { }
+        }
+
+        internal void BuildMatchups(List<Matchup> matchups)
+        {
+            if (_scoreStrip != null && _scoreStrip.Games != null)
+            {
+                foreach (NflGame game in _scoreStrip.Games)
+                {
+                    matchups.Add(new Matchup(game.Away, game.Home, 0.5));
+                }
+            }
+
+            if (_odds != null && _odds.Events != null)
+            {
+                foreach (Event ev in _odds.Events)
+                {
+                    Matchup m = new Matchup(
+                        ev.Participants.First(x => !x.IsHome).Name, 
+                        ev.Participants.First(x => x.IsHome).Name, 
+                        0.5);
+                    if (!matchups.Any(x => x.Away == m.Away && x.Home == m.Home)) matchups.Add(m);
+                }
+            }
+        }
+
         public void UpdateMatchup(Matchup m)
         {
             try {
@@ -48,23 +91,6 @@ namespace ConfidencePoolAnalyzer
             catch { }
         }
 
-        public void Scrape()
-        {
-            //TODO: don't blindly overwrite Odds/games, so we can keep last known odds/games
-            try
-            {
-                if (_client != null)
-                    _odds = (PinnacleOdds)_oddsSerializer.Deserialize(_client.OpenRead(@"http://xml.pinnaclesports.com/pinnacleFeed.aspx?sporttype=Football&sportsubtype=NFL"));
-            }
-            catch { }
-            try
-            {
-                if (_client != null)
-                    _scoreStrip = (NflScoreStrip)_nflSerializer.Deserialize(_client.OpenRead(@"http://www.nfl.com/liveupdate/scorestrip/ss.xml"));
-            }
-            catch { }
-        }
-        
     }
 
     [XmlRoot("ss")]
@@ -119,6 +145,26 @@ namespace ConfidencePoolAnalyzer
         [XmlArray("periods")]
         [XmlArrayItem("period")]
         public List<Period> Periods { get; set; }
+
+        public bool IsValidNflGame
+        {
+            get
+            {
+                return Participants.TrueForAll(x => NflTeamAbbrevs.Contains(x.Name));
+            }
+        }
+
+        private static readonly List<string> NflTeamAbbrevs = new List<string> 
+        {
+            "MIA", "NE", "BUF", "NYJ",
+            "CIN", "CLE", "BAL", "PIT",
+            "HOU", "TEN", "IND", "JAC",
+            "DEN", "OAK", "KC", "SD",
+            "PHI", "WAS", "DAL", "NYG",
+            "MIN", "DET", "GB", "CHI",
+            "ATL", "CAR", "NO", "TB",
+            "SEA", "SF", "ARI", "STL"
+        };
     }
 
     public class Participant
@@ -131,9 +177,10 @@ namespace ConfidencePoolAnalyzer
                 switch (value)
                 {
                     case "New York Giants": _name = "NYG"; break;
-                    case "New Englang Patriots": _name = "NE"; break;
+                    case "New England Patriots": _name = "NE"; break;
                     case "New Orleans Saints": _name = "NO"; break;
                     case "Saint Louis Rams": _name = "STL"; break;
+                    case "St. Louis Rams": _name = "STL"; break;
                     case "Tampa Bay Buccaneers": _name = "TB"; break;
                     case "San Diego Chargers": _name = "SD"; break;
                     case "New York Jets": _name = "NYJ"; break;

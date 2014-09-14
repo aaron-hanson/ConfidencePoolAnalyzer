@@ -16,24 +16,25 @@ namespace ConfidencePoolAnalyzer
 
         static void Main()
         {
-            //TODO:  autoload matchups from NFL api
+            LiveNflData.Instance.Scrape();
+            LiveNflData.Instance.BuildMatchups(Matchups);
 
-            Matchups.Add(new Matchup("PIT", "BAL", .573, ""));
-            Matchups.Add(new Matchup("DET", "CAR", .550, ""));
-            Matchups.Add(new Matchup("ATL", "CIN", .639, ""));
-            Matchups.Add(new Matchup("NE", "MIN", .397, ""));
-            Matchups.Add(new Matchup("DAL", "TEN", .592, ""));
-            Matchups.Add(new Matchup("JAC", "WAS", .725, ""));
-            Matchups.Add(new Matchup("ARI", "NYG", .480, ""));
-            Matchups.Add(new Matchup("MIA", "BUF", .443, ""));
-            Matchups.Add(new Matchup("NO", "CLE", .345, ""));
-            Matchups.Add(new Matchup("STL", "TB", .686, ""));
-            Matchups.Add(new Matchup("SEA", "SD", .306, ""));
-            Matchups.Add(new Matchup("KC", "DEN", .809, ""));
-            Matchups.Add(new Matchup("NYJ", "GB", .715, ""));
-            Matchups.Add(new Matchup("HOU", "OAK", .428, ""));
-            Matchups.Add(new Matchup("CHI", "SF", .709, ""));
-            Matchups.Add(new Matchup("PHI", "IND", .564, ""));
+            //Matchups.Add(new Matchup("PIT", "BAL", .573, ""));
+            //Matchups.Add(new Matchup("DET", "CAR", .550, ""));
+            //Matchups.Add(new Matchup("ATL", "CIN", .639, ""));
+            //Matchups.Add(new Matchup("NE", "MIN", .397, ""));
+            //Matchups.Add(new Matchup("DAL", "TEN", .592, ""));
+            //Matchups.Add(new Matchup("JAC", "WAS", .725, ""));
+            //Matchups.Add(new Matchup("ARI", "NYG", .480, ""));
+            //Matchups.Add(new Matchup("MIA", "BUF", .443, ""));
+            //Matchups.Add(new Matchup("NO", "CLE", .345, ""));
+            //Matchups.Add(new Matchup("STL", "TB", .686, ""));
+            //Matchups.Add(new Matchup("SEA", "SD", .306, ""));
+            //Matchups.Add(new Matchup("KC", "DEN", .809, ""));
+            //Matchups.Add(new Matchup("NYJ", "GB", .715, ""));
+            //Matchups.Add(new Matchup("HOU", "OAK", .428, ""));
+            //Matchups.Add(new Matchup("CHI", "SF", .709, ""));
+            //Matchups.Add(new Matchup("PHI", "IND", .564, ""));
 
             PlayerEntries.Add(new PlayerEntry("Aaron Hanson", -1, "BAL", 14, "CAR", 11, "CIN", 13, "NE", 2, "TEN", 6, "WAS", 15, "NYG", 7, "MIA", 4, "NO", 3, "TB", 8, "SEA", 10, "DEN", 16, "GB", 9, "OAK", 5, "SF", 12, "PHI", 1));
             PlayerEntries.Add(new PlayerEntry("A.J. Smith", -1, "BAL", 3, "DET", 1, "CIN", 7, "NE", 14, "DAL", 5, "WAS", 8, "ARI", 10, "BUF", 6, "NO", 12, "TB", 11, "SEA", 13, "DEN", 16, "GB", 15, "HOU", 4, "SF", 9, "IND", 2));
@@ -53,12 +54,9 @@ namespace ConfidencePoolAnalyzer
             try
             {
                 ValidateLists();
-                BuildWeekPossibilities();
-                
+                BuildWeekPossibilities();                
                 LiveUpdateMode();
 
-                //CalculateOutcomes();
-                //PrintTable();
                 //PrintGameChangers();
                 //PrintWinningWeekPossibilities();
             }
@@ -68,6 +66,38 @@ namespace ConfidencePoolAnalyzer
             }
 
             Console.ReadLine();
+        }
+
+        static void LiveUpdateMode()
+        {
+            while (true)
+            {
+                Matchups.ForEach(LiveNflData.Instance.UpdateMatchup);
+                if (Matchups.Any(x => x.IsDirty))
+                {
+                    Console.WriteLine("UPDATED: " + DateTime.Now);
+                    Console.WriteLine();
+
+                    Matchups.Where(x => x.IsDirty).ToList().ForEach(x => x.Recalc());
+                    if (Matchups.Any(x => x.IsWinnerDirty))
+                    {
+                        BuildWeekPossibilities();
+                        Matchups.ForEach(x => x.IsWinnerDirty = false);
+                    }
+                    else if (Matchups.Any(x => x.IsWinPctDirty))
+                    {
+                        Possibilities.ForEach(x => x.RecalcProbability());
+                        Matchups.ForEach(x => x.IsWinPctDirty = false);
+                    }
+
+                    Matchups.ForEach(Console.WriteLine);
+
+                    CalculateOutcomes();
+                    PrintTable();
+                }
+                Thread.Sleep(LiveUpdatePollDelay);
+                LiveNflData.Instance.Scrape();
+            }
         }
 
         private static void PrintWinningWeekPossibilities()
@@ -103,38 +133,6 @@ namespace ConfidencePoolAnalyzer
                     Math.Round(100*entry.OverallWinProb, 3));
             }
             Console.WriteLine();
-        }
-
-        static void LiveUpdateMode()
-        {
-            while (true)
-            {
-                LiveNflData.Instance.Scrape();
-                Matchups.ForEach(x => LiveNflData.Instance.UpdateMatchup(x));
-                if (Matchups.Any(x => x.IsDirty))
-                {
-                    Console.WriteLine("UPDATED: " + DateTime.Now);
-                    Console.WriteLine();
-
-                    Matchups.Where(x => x.IsDirty).ToList().ForEach(x => x.Recalc());
-                    if (Matchups.Any(x => x.IsWinnerDirty))
-                    {
-                        BuildWeekPossibilities();
-                        Matchups.ForEach(x => x.IsWinnerDirty = false);
-                    }
-                    else if (Matchups.Any(x => x.IsWinPctDirty))
-                    {
-                        Possibilities.ForEach(x => x.RecalcProbability());
-                        Matchups.ForEach(x => x.IsWinPctDirty = false);
-                    }
-
-                    Matchups.ForEach(Console.WriteLine);
-
-                    CalculateOutcomes();
-                    PrintTable();
-                }
-                Thread.Sleep(LiveUpdatePollDelay);
-            }
         }
 
         static void PrintGameChangers()
