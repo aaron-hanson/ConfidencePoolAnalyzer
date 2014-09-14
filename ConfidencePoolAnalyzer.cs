@@ -7,8 +7,9 @@ namespace ConfidencePoolAnalyzer
 {
     class ConfidencePoolAnalyzer
     {
-        private const int LiveUpdatePollDelay = 60000;
-        
+        private const int LiveUpdatePollDelay = 20000;
+        private static DateTime NextScrapeTime = DateTime.Now;
+
         public static List<Matchup> Matchups = new List<Matchup>();
         public static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
         public static List<WeekPossibility> Possibilities = new List<WeekPossibility>();
@@ -18,6 +19,15 @@ namespace ConfidencePoolAnalyzer
         {
             LiveNflData.Instance.Scrape();
             LiveNflData.Instance.BuildMatchups(Matchups);
+
+            Matchups.First(x => x.Home == "CAR").Spread = -1;
+            Matchups.First(x => x.Home == "BUF").Spread = -1;
+            Matchups.First(x => x.Home == "WAS").Spread = -5;
+            Matchups.First(x => x.Home == "TEN").Spread = -3.5;
+            Matchups.First(x => x.Home == "NYG").Spread = -2;
+            Matchups.First(x => x.Home == "MIN").Spread = 3;
+            Matchups.First(x => x.Home == "CLE").Spread = 5;
+            Matchups.First(x => x.Home == "CIN").Spread = -5.5;
 
             //Matchups.Add(new Matchup("PIT", "BAL", .573, ""));
             //Matchups.Add(new Matchup("DET", "CAR", .550, ""));
@@ -77,25 +87,27 @@ namespace ConfidencePoolAnalyzer
                 {
                     Console.WriteLine("UPDATED: " + DateTime.Now);
                     Console.WriteLine();
+                    Matchups.ForEach(Console.WriteLine);
 
                     Matchups.Where(x => x.IsDirty).ToList().ForEach(x => x.Recalc());
                     if (Matchups.Any(x => x.IsWinnerDirty))
                     {
                         BuildWeekPossibilities();
                         Matchups.ForEach(x => x.IsWinnerDirty = false);
+                        CalculateOutcomes();
                     }
                     else if (Matchups.Any(x => x.IsWinPctDirty))
                     {
                         Possibilities.ForEach(x => x.RecalcProbability());
                         Matchups.ForEach(x => x.IsWinPctDirty = false);
+                        CalculateOutcomes();
                     }
 
-                    Matchups.ForEach(Console.WriteLine);
-
-                    CalculateOutcomes();
                     PrintTable();
                 }
-                Thread.Sleep(LiveUpdatePollDelay);
+
+                while (DateTime.Now < NextScrapeTime) Thread.Sleep(1000);
+                NextScrapeTime = DateTime.Now.AddMilliseconds(LiveUpdatePollDelay);
                 LiveNflData.Instance.Scrape();
             }
         }

@@ -80,6 +80,8 @@ namespace ConfidencePoolAnalyzer
                 m.HomeScore = game.HomeScore;
                 m.Quarter = game.Quarter;
                 m.TimeLeft = game.TimeLeft;
+                m.Possession = game.Possession;
+                m.Redzone = game.RedZone == 1;
             }
             catch { }
 
@@ -109,8 +111,11 @@ namespace ConfidencePoolAnalyzer
         [XmlAttribute("k")]
         public string TimeLeft { get; set; }
 
+        [XmlAttribute("p")]
+        public string Possession { get; set; }
+
         [XmlAttribute("rz")]
-        public string RedZone { get; set; }
+        public int RedZone { get; set; }
 
         [XmlAttribute("h")]
         public string Home { get; set; }
