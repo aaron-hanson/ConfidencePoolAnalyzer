@@ -1,54 +1,51 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
 using System.Xml.Serialization;
 
 namespace ConfidencePoolAnalyzer
 {
-    public class LiveNFLData : IDisposable
+    public class LiveNflData : IDisposable
     {
-        private WebClient Client;
-        private XmlSerializer NFLSerializer, OddsSerializer;
-        private PinnacleOdds Odds;
-        private NFLScoreStrip ScoreStrip;
+        private readonly WebClient _client;
+        private readonly XmlSerializer _nflSerializer;
+        private readonly XmlSerializer _oddsSerializer;
+        private PinnacleOdds _odds;
+        private NflScoreStrip _scoreStrip;
 
-        private static readonly Lazy<LiveNFLData> instance = new Lazy<LiveNFLData>(() => new LiveNFLData());
-        public static LiveNFLData Instance { get { return instance.Value; } }
+        private static readonly Lazy<LiveNflData> TheInstance = new Lazy<LiveNflData>(() => new LiveNflData());
+        public static LiveNflData Instance { get { return TheInstance.Value; } }
 
-        private LiveNFLData()
+        private LiveNflData()
         {
-            Client = new WebClient();
-            NFLSerializer = new XmlSerializer(typeof(NFLScoreStrip));
-            OddsSerializer = new XmlSerializer(typeof(PinnacleOdds));
+            _client = new WebClient();
+            _nflSerializer = new XmlSerializer(typeof(NflScoreStrip));
+            _oddsSerializer = new XmlSerializer(typeof(PinnacleOdds));
         }
 
         public void Dispose()
         {
-            Client.Dispose();
+            _client.Dispose();
         }
 
         public void UpdateMatchup(Matchup m)
         {
             try {
-                NFLGame game = ScoreStrip.Games.First(x => x.Home.Equals(m.Home) && x.Away.Equals(m.Away));
+                NflGame game = _scoreStrip.Games.First(x => x.Home.Equals(m.Home) && x.Away.Equals(m.Away));
                 m.AwayScore = game.AwayScore;
                 m.HomeScore = game.HomeScore;
                 m.Quarter = game.Quarter;
                 m.TimeLeft = game.TimeLeft;
             }
-            catch (Exception) {}
+            catch { }
 
             try {
-                double spread = Odds.Events.First(x => x.Participants.Any(y => y.Name.Equals(m.Home)))
+                double spread = _odds.Events.First(x => x.Participants.Any(y => y.Name.Equals(m.Home)))
                     .Periods.First(x => x.PeriodNumber == 0).Spread.SpreadHome;
                 m.Spread = spread;
             }
-            catch (Exception) {}
+            catch { }
         }
 
         public void Scrape()
@@ -56,27 +53,29 @@ namespace ConfidencePoolAnalyzer
             //TODO: don't blindly overwrite Odds/games, so we can keep last known odds/games
             try
             {
-                Odds = (PinnacleOdds)OddsSerializer.Deserialize(Client.OpenRead(@"http://xml.pinnaclesports.com/pinnacleFeed.aspx?sporttype=Football&sportsubtype=NFL"));
+                if (_client != null)
+                    _odds = (PinnacleOdds)_oddsSerializer.Deserialize(_client.OpenRead(@"http://xml.pinnaclesports.com/pinnacleFeed.aspx?sporttype=Football&sportsubtype=NFL"));
             }
-            catch (Exception) { }
+            catch { }
             try
             {
-                ScoreStrip = (NFLScoreStrip)NFLSerializer.Deserialize(Client.OpenRead(@"http://www.nfl.com/liveupdate/scorestrip/ss.xml"));
+                if (_client != null)
+                    _scoreStrip = (NflScoreStrip)_nflSerializer.Deserialize(_client.OpenRead(@"http://www.nfl.com/liveupdate/scorestrip/ss.xml"));
             }
-            catch (Exception) { }
+            catch { }
         }
         
     }
 
     [XmlRoot("ss")]
-    public class NFLScoreStrip
+    public class NflScoreStrip
     {
         [XmlArray("gms")]
         [XmlArrayItem("g")]
-        public List<NFLGame> Games { get; set; }
+        public List<NflGame> Games { get; set; }
     }
 
-    public class NFLGame
+    public class NflGame
     {
         [XmlAttribute("q")] 
         public string Quarter { get; set; }

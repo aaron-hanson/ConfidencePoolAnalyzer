@@ -7,7 +7,7 @@ namespace ConfidencePoolAnalyzer
 {
     class ConfidencePoolAnalyzer
     {
-        private const int _liveUpdatePollDelay = 60000;
+        private const int LiveUpdatePollDelay = 60000;
         
         public static List<Matchup> Matchups = new List<Matchup>();
         public static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
@@ -72,7 +72,7 @@ namespace ConfidencePoolAnalyzer
 
         private static void PrintWinningWeekPossibilities()
         {
-            List<string> entriesToPrint = new List<string> {/*"Aaron Hanson"*/};
+            List<string> entriesToPrint = new List<string> {"Aaron Hanson"};
             foreach (WeekPossibility wp in Possibilities.Where(x => x.PlayerScores.Count(y => entriesToPrint.Contains(y.Name) && y.Rank == 1) > 0
                                                                && x.PlayerScores.Count(y => !entriesToPrint.Contains(y.Name) && y.Rank == 1) == 0)
                                                         .OrderBy(x => x.Probability)) wp.Print();
@@ -91,16 +91,16 @@ namespace ConfidencePoolAnalyzer
             {
                 int wins = Possibilities.Count(x => x.PlayerScores.Count(y => y.Name.Equals(entry.Name) && y.Rank == 1) == 1);
                 double pct = (double) wins*100/Possibilities.Count();
-                Console.WriteLine(String.Format("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}",
-                    entry.Name.PadRight(13),
-                    + Math.Round(pct, 2),
-                    Math.Round(entry.LikelyScore),
-                    entry.MaxScore,
-                    entry.CurScore,
-                    Math.Round(entry.WeightedRank, 2),
-                    Math.Round(100*entry.OutrightWinProb, 3),
-                    Math.Round(100*entry.TiedProb, 3),
-                    Math.Round(100*entry.OverallWinProb, 3)));
+                Console.WriteLine("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}", 
+                    entry.Name.PadRight(13), 
+                    Math.Round(pct, 2), 
+                    Math.Round(entry.LikelyScore), 
+                    entry.MaxScore, 
+                    entry.CurScore, 
+                    Math.Round(entry.WeightedRank, 2), 
+                    Math.Round(100*entry.OutrightWinProb, 3), 
+                    Math.Round(100*entry.TiedProb, 3), 
+                    Math.Round(100*entry.OverallWinProb, 3));
             }
             Console.WriteLine();
         }
@@ -109,11 +109,11 @@ namespace ConfidencePoolAnalyzer
         {
             while (true)
             {
-                LiveNFLData.Instance.Scrape();
-                Matchups.ForEach(x => LiveNFLData.Instance.UpdateMatchup(x));
+                LiveNflData.Instance.Scrape();
+                Matchups.ForEach(x => LiveNflData.Instance.UpdateMatchup(x));
                 if (Matchups.Any(x => x.IsDirty))
                 {
-                    Console.WriteLine("UPDATED: " + DateTime.Now.ToString());
+                    Console.WriteLine("UPDATED: " + DateTime.Now);
                     Console.WriteLine();
 
                     Matchups.Where(x => x.IsDirty).ToList().ForEach(x => x.Recalc());
@@ -128,12 +128,12 @@ namespace ConfidencePoolAnalyzer
                         Matchups.ForEach(x => x.IsWinPctDirty = false);
                     }
 
-                    Matchups.ForEach(x => Console.WriteLine(x));
+                    Matchups.ForEach(Console.WriteLine);
 
                     CalculateOutcomes();
                     PrintTable();
                 }
-                Thread.Sleep(_liveUpdatePollDelay);
+                Thread.Sleep(LiveUpdatePollDelay);
             }
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace ConfidencePoolAnalyzer
 {
@@ -66,10 +67,10 @@ namespace ConfidencePoolAnalyzer
         {
             get
             {
-                if (String.IsNullOrEmpty(Quarter) || Quarter == NFLQuarter.Pregame) return 60;
-                else if (Quarter == NFLQuarter.Halftime) return 30;
-                else if (Quarter == NFLQuarter.Overtime) return 2;
-                else if (IsFinal) return 0;
+                if (String.IsNullOrEmpty(Quarter) || Quarter == NflQuarter.Pregame) return 60;
+                if (Quarter == NflQuarter.Halftime) return 30;
+                if (Quarter == NflQuarter.Overtime) return 2;
+                if (IsFinal) return 0;
 
                 string[] mmss = TimeLeft.Split(':');
                 if (mmss.Length != 2) return 60;
@@ -82,23 +83,23 @@ namespace ConfidencePoolAnalyzer
 
         public bool IsFinal
         {
-            get { return Quarter == NFLQuarter.Final || Quarter == NFLQuarter.FinalOT; }
+            get { return Quarter == NflQuarter.Final || Quarter == NflQuarter.FinalOt; }
         }
 
         public string GameStatus
         {
             get
             {
-                if (Quarter == NFLQuarter.Pregame) return "PREGAME";
-                else if (Quarter == NFLQuarter.FirstQuarter) return TimeLeft.PadLeft(5) + " 1ST";
-                else if (Quarter == NFLQuarter.SecondQuarter) return TimeLeft.PadLeft(5) + " 2ND";
-                else if (Quarter == NFLQuarter.Halftime) return "HALFTIME";
-                else if (Quarter == NFLQuarter.ThirdQuarter) return TimeLeft.PadLeft(5) + " 3RD";
-                else if (Quarter == NFLQuarter.FourthQuarter) return TimeLeft.PadLeft(5) + " 4TH";
-                else if (Quarter == NFLQuarter.Overtime) return TimeLeft.PadLeft(5) + " OT ";
-                else if (Quarter == NFLQuarter.Final) return "FINAL";
-                else if (Quarter == NFLQuarter.FinalOT) return "FINAL(OT)";
-                else return Quarter;
+                if (Quarter == NflQuarter.Pregame) return "PREGAME";
+                if (Quarter == NflQuarter.FirstQuarter) return TimeLeft.PadLeft(5) + " 1ST";
+                if (Quarter == NflQuarter.SecondQuarter) return TimeLeft.PadLeft(5) + " 2ND";
+                if (Quarter == NflQuarter.Halftime) return "HALFTIME";
+                if (Quarter == NflQuarter.ThirdQuarter) return TimeLeft.PadLeft(5) + " 3RD";
+                if (Quarter == NflQuarter.FourthQuarter) return TimeLeft.PadLeft(5) + " 4TH";
+                if (Quarter == NflQuarter.Overtime) return TimeLeft.PadLeft(5) + " OT ";
+                if (Quarter == NflQuarter.Final) return "FINAL";
+                if (Quarter == NflQuarter.FinalOt) return "FINAL(OT)";
+                return Quarter;
             }
         }
 
@@ -111,7 +112,7 @@ namespace ConfidencePoolAnalyzer
             Spread = 0;
             HomeScore = 0;
             AwayScore = 0;
-            Quarter = NFLQuarter.Pregame;
+            Quarter = NflQuarter.Pregame;
             TimeLeft = "";
 
             Recalc();
@@ -135,8 +136,8 @@ namespace ConfidencePoolAnalyzer
             return string.Format("{0} {1} {2}-{3} {4} {5} {6}",
                 GameStatus.PadRight(10),
                 Away.PadLeft(3),
-                AwayScore.ToString().PadLeft(2),
-                HomeScore.ToString().PadRight(2),
+                AwayScore.ToString(CultureInfo.InvariantCulture).PadLeft(2),
+                HomeScore.ToString(CultureInfo.InvariantCulture).PadRight(2),
                 Home.PadRight(3),
                 Spread.ToString("+0.0;-0.0;PK ").PadLeft(5),
                 Math.Round(HomeWinPct, 4).ToString("0.00%").PadLeft(7)
@@ -144,7 +145,7 @@ namespace ConfidencePoolAnalyzer
         }
     }
 
-    public sealed class NFLQuarter
+    public sealed class NflQuarter
     {
         public static readonly string Pregame = "P";
         public static readonly string FirstQuarter = "1";
@@ -154,6 +155,6 @@ namespace ConfidencePoolAnalyzer
         public static readonly string FourthQuarter = "4";
         public static readonly string Overtime = "5";
         public static readonly string Final = "F";
-        public static readonly string FinalOT = "FO";
+        public static readonly string FinalOt = "FO";
     }
 }
