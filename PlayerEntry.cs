@@ -56,7 +56,7 @@ namespace ConfidencePoolAnalyzer
             }
         }
 
-        public double GetScore(WeekPossibility wp)
+        public int GetScore(WeekPossibility wp)
         {
             IEnumerable<string> weekWinners = wp.GameWinners.Select(x => x.TeamAbbrev);
             return GamePicks.Where(x => weekWinners.Contains(x.TeamAbbrev)).Sum(x => x.Points);

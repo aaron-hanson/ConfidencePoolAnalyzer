@@ -337,7 +337,7 @@ namespace ConfidencePoolAnalyzer
                 if (entry.GamePicks.Sum(x => x.Points) != pointsTotExpected) throw new Exception(entry.Name + " has invalid points total");
 
                 List<string> teamsPicked = new List<string>();
-                List<double> pointsPicked = new List<double>();
+                List<int> pointsPicked = new List<int>();
                 List<Matchup> matchupsPicked = new List<Matchup>();
                 foreach (GamePick pick in entry.GamePicks)
                 {

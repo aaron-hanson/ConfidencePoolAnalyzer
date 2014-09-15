@@ -3,7 +3,7 @@ namespace ConfidencePoolAnalyzer
     class GamePick
     {
         public string TeamAbbrev;
-        public double Points;
+        public int Points;
 
         public GamePick(string teamAbbrev, int points)
         {
