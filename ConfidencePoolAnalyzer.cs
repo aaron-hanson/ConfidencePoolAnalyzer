@@ -121,16 +121,24 @@ namespace ConfidencePoolAnalyzer
 
                     buf.Append(GetTable());
                     Console.Write(buf.ToString());
-                    buf.Insert(0, @"<!DOCTYPE html><html><head><title>STATS Conf Pool LIVE!</title><meta http-equiv=""refresh"" content=""20""/></head><body><pre>" + Environment.NewLine);
+                    buf.Insert(0, @"<!DOCTYPE html><html><head><title>STATS Conf Pool LIVE!</title><meta http-equiv=""refresh"" content=""20""/>" +
+                        @"<meta name=""HandheldFriendly"" content=""True"" />" +
+                        @"<meta name=""MobileOptimized"" content=""320"" />" +
+                        @"<meta name=""viewport"" content=""width=device-width, initial-scale=1"" />" +
+                        @"<meta http-equiv=""cleartype"" content=""on"" />" + 
+                        @"</head><body><pre>" + Environment.NewLine);
                     buf.AppendLine("LEGEND:");
-                    buf.AppendLine("   OVERALL WIN%:  The probability of winning the pool either outright or tied with others (tied scenario's chances are divided equally between all players tied).");
-                    buf.AppendLine("      SOLO WIN%:  The probability of winning the pool outright, with no players tied.");
-                    buf.AppendLine("      TIED WIN%:  The probability of ending up tied for the win with other players.");
-                    buf.AppendLine("          TREE%:  The probability of winning the pool outright or tied, if all unfinished games were coin flips (50/50 chance).");
-                    buf.AppendLine("    AVG. POINTS:  The average number of points expected for this player at the end of all games.");
-                    buf.AppendLine("     MAX POINTS:  The maximum possible number of points for this player at the end of all games.");
-                    buf.AppendLine(" CURRENT POINTS:  The current number of points for this player, based only on finished games.");
-                    buf.AppendLine("      AVG. RANK:  The average finishing place expected for this player at the end of all games.");
+                    buf.AppendLine("   OVERALL WIN%:  The probability of winning the pool either outright or tied");
+                    buf.AppendLine("                  with others (tied scenario's chances are divided equally");
+                    buf.AppendLine("                  between all players tied).");
+                    buf.AppendLine("      SOLO WIN%:  The probability of winning the pool outright, with no ties.");
+                    buf.AppendLine("      TIED WIN%:  The probability of tying for the win with other players.");
+                    buf.AppendLine("          TREE%:  The probability of winning the pool outright or tied, if all");
+                    buf.AppendLine("                  unfinished games were coin flips (50/50 chance).");
+                    buf.AppendLine("    AVG. POINTS:  The average number of points expected for this player.");
+                    buf.AppendLine("     MAX POINTS:  The maximum possible number of points for this player.");
+                    buf.AppendLine(" CURRENT POINTS:  The current number of points for this player.");
+                    buf.AppendLine("      AVG. RANK:  The average finishing place expected for this player.");
                     buf.Append(Environment.NewLine + @"</pre></body></html>");
                     UploadLatestToAltdex(buf.ToString());
                 }
