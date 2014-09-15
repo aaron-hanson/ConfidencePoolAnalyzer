@@ -84,6 +84,7 @@ namespace ConfidencePoolAnalyzer
                 if (String.IsNullOrEmpty(Quarter) || Quarter == NflQuarter.Pregame) return 60;
                 if (Quarter == NflQuarter.Halftime) return 30;
                 if (Quarter == NflQuarter.Overtime) return 2;
+                if (Quarter == NflQuarter.Suspended) return 30;
                 if (IsFinal) return 0;
 
                 string[] mmss = TimeLeft.Split(':');
@@ -113,6 +114,7 @@ namespace ConfidencePoolAnalyzer
                 if (Quarter == NflQuarter.Overtime) return TimeLeft.PadLeft(5) + " OT ";
                 if (Quarter == NflQuarter.Final) return "FINAL";
                 if (Quarter == NflQuarter.FinalOt) return "FINAL(OT)";
+                if (Quarter == NflQuarter.Suspended) return "SUSP";
                 return Quarter;
             }
         }
@@ -172,5 +174,6 @@ namespace ConfidencePoolAnalyzer
         public static readonly string Overtime = "5";
         public static readonly string Final = "F";
         public static readonly string FinalOt = "FO";
+        public static readonly string Suspended = "Suspended";
     }
 }
