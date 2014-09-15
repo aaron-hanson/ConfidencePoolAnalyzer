@@ -1,33 +1,75 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
+using System.Configuration;
 
 namespace ConfidencePoolAnalyzer
 {
     class ConfidencePoolAnalyzer
     {
         private const int LiveUpdatePollDelay = 20000;
-        private static DateTime NextScrapeTime = DateTime.Now;
+        private static DateTime _nextScrapeTime = DateTime.Now;
 
         public static List<Matchup> Matchups = new List<Matchup>();
         public static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
         public static List<WeekPossibility> Possibilities = new List<WeekPossibility>();
         public static List<string> EntryWinCheck = new List<string> { "Aaron Hanson", "Teresa Mendoz" };
 
+        public static readonly string FtpHost, FtpUser, FtpPass;
+
+        static ConfidencePoolAnalyzer()
+        {
+            ExeConfigurationFileMap configFileMap = new ExeConfigurationFileMap();
+            configFileMap.ExeConfigFilename = "ftp.config";
+            Configuration config = ConfigurationManager.OpenMappedExeConfiguration(configFileMap,
+                ConfigurationUserLevel.None);
+            FtpHost = config.AppSettings.Settings["ftphost"].Value;
+            FtpUser = config.AppSettings.Settings["ftpuser"].Value;
+            FtpPass = config.AppSettings.Settings["ftppass"].Value;
+        }
+
+        static void UploadLatestToAltdex(string contents)
+        {
+            FtpWebRequest req = (FtpWebRequest)WebRequest.Create(String.Format("ftp://{0}/files/test.html", FtpHost));
+            req.Credentials = new NetworkCredential(FtpUser, FtpPass);
+            req.EnableSsl = true;
+
+            X509Certificate cert = new X509Certificate("ftp.cert");
+            X509Certificate2Collection certColl = new X509Certificate2Collection { cert };
+            req.ClientCertificates = certColl;
+
+            req.ContentLength = contents.Length;
+            req.Method = WebRequestMethods.Ftp.UploadFile;
+
+            ServicePointManager.ServerCertificateValidationCallback +=
+                (sender, certificate, chain, sslPolicyErrors) => true;
+            FtpWebResponse resp = (FtpWebResponse)req.GetResponse();
+
+            byte[] bytes = Encoding.UTF8.GetBytes(contents);
+            Stream reqStream = req.GetRequestStream();
+            reqStream.Write(bytes, 0, bytes.Length);
+            reqStream.Close();
+        }
+
         static void Main()
         {
+
             LiveNflData.Instance.Scrape();
             LiveNflData.Instance.BuildMatchups(Matchups);
 
-            Matchups.First(x => x.Home == "CAR").Spread = -1;
-            Matchups.First(x => x.Home == "BUF").Spread = -1;
-            Matchups.First(x => x.Home == "WAS").Spread = -5;
-            Matchups.First(x => x.Home == "TEN").Spread = -3.5;
-            Matchups.First(x => x.Home == "NYG").Spread = -2;
-            Matchups.First(x => x.Home == "MIN").Spread = 3;
-            Matchups.First(x => x.Home == "CLE").Spread = 5;
-            Matchups.First(x => x.Home == "CIN").Spread = -5.5;
+            //Matchups.First(x => x.Home == "CAR").Spread = -1;
+            //Matchups.First(x => x.Home == "BUF").Spread = -1;
+            //Matchups.First(x => x.Home == "WAS").Spread = -5;
+            //Matchups.First(x => x.Home == "TEN").Spread = -3.5;
+            //Matchups.First(x => x.Home == "NYG").Spread = -2;
+            //Matchups.First(x => x.Home == "MIN").Spread = 3;
+            //Matchups.First(x => x.Home == "CLE").Spread = 5;
+            //Matchups.First(x => x.Home == "CIN").Spread = -5.5;
 
             //Matchups.Add(new Matchup("PIT", "BAL", .573, ""));
             //Matchups.Add(new Matchup("DET", "CAR", .550, ""));
@@ -106,8 +148,8 @@ namespace ConfidencePoolAnalyzer
                     PrintTable();
                 }
 
-                while (DateTime.Now < NextScrapeTime) Thread.Sleep(1000);
-                NextScrapeTime = DateTime.Now.AddMilliseconds(LiveUpdatePollDelay);
+                while (DateTime.Now < _nextScrapeTime) Thread.Sleep(1000);
+                _nextScrapeTime = DateTime.Now.AddMilliseconds(LiveUpdatePollDelay);
                 LiveNflData.Instance.Scrape();
             }
         }
