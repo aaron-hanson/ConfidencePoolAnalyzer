@@ -7,7 +7,6 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Configuration;
-using System.Collections.Specialized;
 
 namespace ConfidencePoolAnalyzer
 {
@@ -20,7 +19,7 @@ namespace ConfidencePoolAnalyzer
         public static List<Matchup> Matchups = new List<Matchup>();
         public static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
         public static List<WeekPossibility> Possibilities = new List<WeekPossibility>();
-        public static List<string> EntryWinCheck;// = new List<string> { "Aaron Hanson", "Teresa Mendoz" };
+        public static List<string> EntryWinCheck = new List<string>();
 
         public static readonly string FtpHost, FtpUser, FtpPass;
 
@@ -28,19 +27,8 @@ namespace ConfidencePoolAnalyzer
         {
             ForceUpdates = "true".Equals(ConfigurationManager.AppSettings["ForceUpdates"], StringComparison.InvariantCultureIgnoreCase);
             LiveUpdatePollDelay = int.TryParse(ConfigurationManager.AppSettings["LiveUpdatePollDelayMillis"], out LiveUpdatePollDelay) ? LiveUpdatePollDelay : 20000;
-            EntryWinCheck = ConfigurationManager.AppSettings["EntryWinCheck"] != null && ConfigurationManager.AppSettings["EntryWinCheck"].Length > 0 ? ConfigurationManager.AppSettings["EntryWinCheck"].Split(',').ToList() : new List<string>();
-
-            ExeConfigurationFileMap configFileMap = new ExeConfigurationFileMap();
-            configFileMap.ExeConfigFilename = "ftp.config";
-            Configuration config = ConfigurationManager.OpenMappedExeConfiguration(configFileMap,
-                ConfigurationUserLevel.None);
-            FtpHost = config.AppSettings.Settings["ftphost"].Value;
-            FtpUser = config.AppSettings.Settings["ftpuser"].Value;
-            FtpPass = config.AppSettings.Settings["ftppass"].Value;
-        }
-
-        static void Main()
-        {
+            if (ConfigurationManager.AppSettings["EntryWinCheck"] != null && ConfigurationManager.AppSettings["EntryWinCheck"].Length > 0)
+                EntryWinCheck.AddRange(ConfigurationManager.AppSettings["EntryWinCheck"].Split(','));
 
             LiveNflData.Instance.Scrape();
             _nextScrapeTime = DateTime.Now.AddMilliseconds(LiveUpdatePollDelay);
@@ -48,22 +36,21 @@ namespace ConfidencePoolAnalyzer
 
             // temp fix for week 2 matchups that are final
             // TODO: find odds data source that includes spreads for final matchups
-            Matchups.First(x => x.Home == "BAL").Spread = -2.5;
-            Matchups.First(x => x.Home == "CAR").Spread = -1;
-            Matchups.First(x => x.Home == "BUF").Spread = -1;
-            Matchups.First(x => x.Home == "WAS").Spread = -5;
-            Matchups.First(x => x.Home == "TEN").Spread = -3.5;
-            Matchups.First(x => x.Home == "NYG").Spread = -2;
-            Matchups.First(x => x.Home == "MIN").Spread = 3;
-            Matchups.First(x => x.Home == "CLE").Spread = 5;
-            Matchups.First(x => x.Home == "CIN").Spread = -5.5;
-            Matchups.First(x => x.Home == "IND").Spread = -3;
-            Matchups.First(x => x.Home == "SF").Spread = -7;
-            Matchups.First(x => x.Home == "OAK").Spread = 3;
-            Matchups.First(x => x.Home == "GB").Spread = -7;
-            Matchups.First(x => x.Home == "DEN").Spread = -13;
-            Matchups.First(x => x.Home == "TB").Spread = -4;
-            Matchups.First(x => x.Home == "SD").Spread = 5;
+            if (ConfigurationManager.AppSettings["MissingSpreads"] != null && ConfigurationManager.AppSettings["MissingSpreads"].Length > 0)
+            {
+                foreach (string[] gamedata in ConfigurationManager.AppSettings["MissingSpreads"].Split(';').Select(game => game.Split('=')))
+                {
+                    double spread;
+                    if (double.TryParse(gamedata[1], out spread)) Matchups.First(x => x.Home == gamedata[0]).Spread = spread;
+                }
+            }
+
+            ExeConfigurationFileMap configFileMap = new ExeConfigurationFileMap {ExeConfigFilename = "ftp.config"};
+            Configuration config = ConfigurationManager.OpenMappedExeConfiguration(configFileMap,
+                ConfigurationUserLevel.None);
+            FtpHost = config.AppSettings.Settings["ftphost"].Value;
+            FtpUser = config.AppSettings.Settings["ftpuser"].Value;
+            FtpPass = config.AppSettings.Settings["ftppass"].Value;
 
             PlayerEntries.Add(new PlayerEntry("Aaron Hanson", -1, "BAL", 14, "CAR", 11, "CIN", 13, "NE", 2, "TEN", 6, "WAS", 15, "NYG", 7, "MIA", 4, "NO", 3, "TB", 8, "SEA", 10, "DEN", 16, "GB", 9, "OAK", 5, "SF", 12, "PHI", 1));
             PlayerEntries.Add(new PlayerEntry("A.J. Smith", -1, "BAL", 3, "DET", 1, "CIN", 7, "NE", 14, "DAL", 5, "WAS", 8, "ARI", 10, "BUF", 6, "NO", 12, "TB", 11, "SEA", 13, "DEN", 16, "GB", 15, "HOU", 4, "SF", 9, "IND", 2));
@@ -79,7 +66,10 @@ namespace ConfidencePoolAnalyzer
             PlayerEntries.Add(new PlayerEntry("Teresa Mendoz", -1, "BAL", 6, "CAR", 12, "CIN", 5, "NE", 13, "TEN", 4, "WAS", 3, "NYG", 2, "BUF", 8, "NO", 15, "STL", 1, "SEA", 11, "DEN", 14, "GB", 7, "OAK", 9, "SF", 16, "IND", 10));
 
             AddRandomEntries(0);
+        }
 
+        static void Main()
+        {
             try
             {
                 ValidateLists();
