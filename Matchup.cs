@@ -72,8 +72,9 @@ namespace ConfidencePoolAnalyzer
             {
                 if (value != _quarter)
                 {
-                    _quarter = value; IsDirty = true; 
-                    //if (value != NflQuarter.S)
+                    _quarter = value;
+                    IsDirty = true;
+                    if (value != NflQuarter.Suspended) _realQuarter = value;
                 }
             }
         }
@@ -89,17 +90,16 @@ namespace ConfidencePoolAnalyzer
         {
             get
             {
-                if (String.IsNullOrEmpty(Quarter) || Quarter == NflQuarter.Pregame) return 60;
-                if (Quarter == NflQuarter.Halftime) return 30;
-                if (Quarter == NflQuarter.Overtime) return 2;
-                if (Quarter == NflQuarter.Suspended) return 30;
+                if (String.IsNullOrEmpty(_realQuarter) || _realQuarter == NflQuarter.Pregame) return 60;
+                if (_realQuarter == NflQuarter.Halftime) return 30;
+                if (_realQuarter == NflQuarter.Overtime) return 5;
                 if (IsFinal) return 0;
 
                 string[] mmss = TimeLeft.Split(':');
                 if (mmss.Length != 2) return 60;
                 double minutes = double.Parse(mmss[0]);
                 double seconds = double.Parse(mmss[1]);
-                int quarter = int.Parse(Quarter);
+                int quarter = int.Parse(_realQuarter);
                 return minutes + seconds / 60 + (4 - quarter) * 15;
             }
         }
@@ -164,7 +164,7 @@ namespace ConfidencePoolAnalyzer
                 (Away + (Possession == Away ? (RedZone ? "#" : "*") : " ")).PadLeft(4),
                 AwayScore.ToString(CultureInfo.InvariantCulture).PadLeft(2),
                 HomeScore.ToString(CultureInfo.InvariantCulture).PadRight(2),
-                ((Possession == Home ? (RedZone ? "#" : "*") : " ") + Home).PadRight(4),
+                ((Possession == Home ? (RedZone ? "*" : ".") : " ") + Home).PadRight(4),
                 Spread.ToString("+0.0;-0.0;PK ").PadLeft(5),
                 Math.Round(HomeWinPct, 4).ToString("0.00%").PadLeft(7)
                 );
