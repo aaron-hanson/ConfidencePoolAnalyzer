@@ -64,10 +64,18 @@ namespace ConfidencePoolAnalyzer
         }
 
         private string _quarter;
+        private string _realQuarter;
         public string Quarter
         {
             get { return _quarter; }
-            set { if (value != _quarter) { _quarter = value; IsDirty = true; } }
+            set
+            {
+                if (value != _quarter)
+                {
+                    _quarter = value; IsDirty = true; 
+                    //if (value != NflQuarter.S)
+                }
+            }
         }
 
         private string _timeLeft;

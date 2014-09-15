@@ -35,25 +35,38 @@ namespace ConfidencePoolAnalyzer
 
         static void UploadLatestToAltdex(string contents)
         {
-            FtpWebRequest req = (FtpWebRequest)WebRequest.Create(String.Format("ftp://{0}/files/test.html", FtpHost));
-            req.Credentials = new NetworkCredential(FtpUser, FtpPass);
-            req.EnableSsl = true;
-
+            ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
+            
+            string reqUri = String.Format("ftp://{0}/files/new.html", FtpHost);
+            NetworkCredential creds = new NetworkCredential(FtpUser, FtpPass);
             X509Certificate cert = new X509Certificate("ftp.cert");
             X509Certificate2Collection certColl = new X509Certificate2Collection { cert };
-            req.ClientCertificates = certColl;
 
+            FtpWebRequest req = (FtpWebRequest)WebRequest.Create(reqUri);
+            req.Credentials = creds;
+            req.EnableSsl = true;
+            req.ClientCertificates = certColl;
             req.ContentLength = contents.Length;
             req.Method = WebRequestMethods.Ftp.UploadFile;
 
-            ServicePointManager.ServerCertificateValidationCallback +=
-                (sender, certificate, chain, sslPolicyErrors) => true;
-            FtpWebResponse resp = (FtpWebResponse)req.GetResponse();
+            FtpWebRequest renameReq = (FtpWebRequest)WebRequest.Create(reqUri);
+            renameReq.Credentials = creds;
+            renameReq.EnableSsl = true;
+            renameReq.ClientCertificates = certColl;
+            renameReq.Method = WebRequestMethods.Ftp.Rename;
+            renameReq.RenameTo = "index.html";
 
+            FtpWebResponse resp = (FtpWebResponse)req.GetResponse();
             byte[] bytes = Encoding.UTF8.GetBytes(contents);
             Stream reqStream = req.GetRequestStream();
             reqStream.Write(bytes, 0, bytes.Length);
             reqStream.Close();
+            resp.Close();
+            resp.Dispose();
+
+            FtpWebResponse renameResp = (FtpWebResponse)renameReq.GetResponse();
+            renameResp.Close();
+            renameResp.Dispose();
         }
 
         static void Main()
@@ -62,14 +75,14 @@ namespace ConfidencePoolAnalyzer
             LiveNflData.Instance.Scrape();
             LiveNflData.Instance.BuildMatchups(Matchups);
 
-            //Matchups.First(x => x.Home == "CAR").Spread = -1;
-            //Matchups.First(x => x.Home == "BUF").Spread = -1;
-            //Matchups.First(x => x.Home == "WAS").Spread = -5;
-            //Matchups.First(x => x.Home == "TEN").Spread = -3.5;
-            //Matchups.First(x => x.Home == "NYG").Spread = -2;
-            //Matchups.First(x => x.Home == "MIN").Spread = 3;
-            //Matchups.First(x => x.Home == "CLE").Spread = 5;
-            //Matchups.First(x => x.Home == "CIN").Spread = -5.5;
+            Matchups.First(x => x.Home == "CAR").Spread = -1;
+            Matchups.First(x => x.Home == "BUF").Spread = -1;
+            Matchups.First(x => x.Home == "WAS").Spread = -5;
+            Matchups.First(x => x.Home == "TEN").Spread = -3.5;
+            Matchups.First(x => x.Home == "NYG").Spread = -2;
+            Matchups.First(x => x.Home == "MIN").Spread = 3;
+            Matchups.First(x => x.Home == "CLE").Spread = 5;
+            Matchups.First(x => x.Home == "CIN").Spread = -5.5;
 
             //Matchups.Add(new Matchup("PIT", "BAL", .573, ""));
             //Matchups.Add(new Matchup("DET", "CAR", .550, ""));
@@ -122,15 +135,22 @@ namespace ConfidencePoolAnalyzer
 
         static void LiveUpdateMode()
         {
+            StringBuilder buf = new StringBuilder();
             while (true)
             {
+                buf.Clear();
+
                 Matchups.ForEach(LiveNflData.Instance.UpdateMatchup);
-                if (Matchups.Any(x => x.IsDirty))
+                if (true || Matchups.Any(x => x.IsDirty))
                 {
-                    Console.WriteLine("UPDATED: " + DateTime.Now);
-                    Console.WriteLine();
+                    buf.AppendLine("UPDATED: " + DateTime.Now);
+                    buf.AppendLine();
                     Matchups.Where(x => x.IsDirty).ToList().ForEach(x => x.Recalc());
-                    Matchups.ForEach(Console.WriteLine);
+
+                    buf.AppendLine("STATUS     AWAY SCORE HOME  LINE HOMEWIN%");
+                    buf.AppendLine("-----------------------------------------");
+                    Matchups.ForEach(x => buf.AppendLine(x.ToString()));
+                    buf.AppendLine();
 
                     if (Matchups.Any(x => x.IsWinnerDirty))
                     {
@@ -145,7 +165,11 @@ namespace ConfidencePoolAnalyzer
                         CalculateOutcomes();
                     }
 
-                    PrintTable();
+                    buf.Append(GetTable());
+                    Console.Write(buf.ToString());
+                    buf.Insert(0, @"<!DOCTYPE html><html><head><title>STATS Conf Pool LIVE!</title><meta http-equiv=""refresh"" content=""20""/></head><body><pre>" + Environment.NewLine);
+                    buf.Append(Environment.NewLine + @"</pre></body></html>");
+                    UploadLatestToAltdex(buf.ToString());
                 }
 
                 while (DateTime.Now < _nextScrapeTime) Thread.Sleep(1000);
@@ -162,20 +186,18 @@ namespace ConfidencePoolAnalyzer
                                                         .OrderBy(x => x.Probability)) wp.Print();
         }
 
-        private static void PrintTable()
+        private static string GetTable()
         {
-            Console.WriteLine();
-            Console.WriteLine("Confidence Pool Analysis for:  " +
-                              string.Join(" OR ", EntryWinCheck.ConvertAll(x => @"""" + x + @"""")));
-            Console.WriteLine("Overall Win % = " + 100*GetOverallWinProbability());
-            Console.WriteLine();
-            Console.WriteLine("Entry Name\tTree\tLikely\tMax\tCur\tRank\tOWin%\tTie%\tWin%");
-            Console.WriteLine("-------------------------------------------------------------------------------");
+            StringBuilder buf = new StringBuilder();
+            //buf.AppendLine("Confidence Pool Analysis for:  " + string.Join(" OR ", EntryWinCheck.ConvertAll(x => @"""" + x + @"""")));
+            //buf.AppendLine("Overall Win % = " + 100 * GetOverallWinProbability());
+            buf.AppendLine("Entry Name\tTree\tLikely\tMax\tCur\tRank\tOWin%\tTie%\tWin%");
+            buf.AppendLine("-------------------------------------------------------------------------------");
             foreach (PlayerEntry entry in PlayerEntries.OrderByDescending(x => x.WinProb).ThenBy(x => x.WeightedRank))
             {
                 int wins = Possibilities.Count(x => x.PlayerScores.Count(y => y.Name.Equals(entry.Name) && y.Rank == 1) == 1);
                 double pct = (double) wins*100/Possibilities.Count();
-                Console.WriteLine("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}", 
+                buf.AppendLine(String.Format("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}", 
                     entry.Name.PadRight(13), 
                     Math.Round(pct, 2), 
                     Math.Round(entry.LikelyScore), 
@@ -184,9 +206,10 @@ namespace ConfidencePoolAnalyzer
                     Math.Round(entry.WeightedRank, 2), 
                     Math.Round(100*entry.OutrightWinProb, 3), 
                     Math.Round(100*entry.TiedProb, 3), 
-                    Math.Round(100*entry.OverallWinProb, 3));
+                    Math.Round(100*entry.OverallWinProb, 3)));
             }
-            Console.WriteLine();
+            buf.AppendLine();
+            return buf.ToString();
         }
 
         static void PrintGameChangers()
