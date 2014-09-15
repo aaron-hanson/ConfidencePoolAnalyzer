@@ -7,24 +7,29 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Configuration;
+using System.Collections.Specialized;
 
 namespace ConfidencePoolAnalyzer
 {
     class ConfidencePoolAnalyzer
     {
-        private const int LiveUpdatePollDelay = 20000;
-        private const bool ForceUpdates = true;
+        private static readonly int LiveUpdatePollDelay;
+        private static readonly bool ForceUpdates;
         private static DateTime _nextScrapeTime;
 
         public static List<Matchup> Matchups = new List<Matchup>();
         public static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
         public static List<WeekPossibility> Possibilities = new List<WeekPossibility>();
-        public static List<string> EntryWinCheck = new List<string> { "Aaron Hanson", "Teresa Mendoz" };
+        public static List<string> EntryWinCheck;// = new List<string> { "Aaron Hanson", "Teresa Mendoz" };
 
         public static readonly string FtpHost, FtpUser, FtpPass;
 
         static ConfidencePoolAnalyzer()
         {
+            ForceUpdates = "true".Equals(ConfigurationManager.AppSettings["ForceUpdates"], StringComparison.InvariantCultureIgnoreCase);
+            LiveUpdatePollDelay = int.TryParse(ConfigurationManager.AppSettings["LiveUpdatePollDelayMillis"], out LiveUpdatePollDelay) ? LiveUpdatePollDelay : 20000;
+            EntryWinCheck = ConfigurationManager.AppSettings["EntryWinCheck"] != null && ConfigurationManager.AppSettings["EntryWinCheck"].Length > 0 ? ConfigurationManager.AppSettings["EntryWinCheck"].Split(',').ToList() : new List<string>();
+
             ExeConfigurationFileMap configFileMap = new ExeConfigurationFileMap();
             configFileMap.ExeConfigFilename = "ftp.config";
             Configuration config = ConfigurationManager.OpenMappedExeConfiguration(configFileMap,
