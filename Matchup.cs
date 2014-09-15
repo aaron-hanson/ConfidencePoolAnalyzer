@@ -56,11 +56,11 @@ namespace ConfidencePoolAnalyzer
             set { if (value != _possession) { _possession = value; IsDirty = true; } }
         }
 
-        private bool _redzone;
-        public bool Redzone
+        private bool _redZone;
+        public bool RedZone
         {
-            get { return _redzone; }
-            set { if (value != _redzone) { _redzone = value; IsDirty = true; } }
+            get { return _redZone; }
+            set { if (value != _redZone) { _redZone = value; IsDirty = true; } }
         }
 
         private string _quarter;
@@ -129,7 +129,7 @@ namespace ConfidencePoolAnalyzer
             Quarter = NflQuarter.Pregame;
             TimeLeft = string.Empty;
             Possession = String.Empty;
-            Redzone = false;
+            RedZone = false;
 
             Recalc();
         }
@@ -151,10 +151,10 @@ namespace ConfidencePoolAnalyzer
         {
             return string.Format("{0} {1} {2}-{3} {4} {5} {6}",
                 GameStatus.PadRight(10),
-                (Away + (Possession == Away ? (Redzone ? "#" : "*") : " ")).PadLeft(4),
+                (Away + (Possession == Away ? (RedZone ? "#" : "*") : " ")).PadLeft(4),
                 AwayScore.ToString(CultureInfo.InvariantCulture).PadLeft(2),
                 HomeScore.ToString(CultureInfo.InvariantCulture).PadRight(2),
-                ((Possession == Home ? (Redzone ? "#" : "*") : " ") + Home).PadRight(4),
+                ((Possession == Home ? (RedZone ? "#" : "*") : " ") + Home).PadRight(4),
                 Spread.ToString("+0.0;-0.0;PK ").PadLeft(5),
                 Math.Round(HomeWinPct, 4).ToString("0.00%").PadLeft(7)
                 );

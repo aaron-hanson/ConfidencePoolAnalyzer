@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Xml.Serialization;
@@ -13,6 +14,8 @@ namespace ConfidencePoolAnalyzer
         private readonly XmlSerializer _oddsSerializer;
         private PinnacleOdds _odds;
         private NflScoreStrip _scoreStrip;
+        private readonly DateTime _thisWeekStart;
+        private readonly DateTime _thisWeekEnd;
 
         private static readonly Lazy<LiveNflData> TheInstance = new Lazy<LiveNflData>(() => new LiveNflData());
         public static LiveNflData Instance { get { return TheInstance.Value; } }
@@ -22,6 +25,10 @@ namespace ConfidencePoolAnalyzer
             _client = new WebClient();
             _nflSerializer = new XmlSerializer(typeof(NflScoreStrip));
             _oddsSerializer = new XmlSerializer(typeof(PinnacleOdds));
+
+            DateTime now = DateTime.Now.Date;
+            _thisWeekEnd = now.AddDays((((int)DayOfWeek.Monday - (int)now.DayOfWeek + 7) % 7) + 1);
+            _thisWeekStart = _thisWeekEnd.AddDays(-7);
         }
 
         public void Dispose()
@@ -38,6 +45,7 @@ namespace ConfidencePoolAnalyzer
                 {
                     _odds = (PinnacleOdds)_oddsSerializer.Deserialize(_client.OpenRead(@"http://xml.pinnaclesports.com/pinnacleFeed.aspx?sporttype=Football&sportsubtype=NFL"));
                     _odds.Events.RemoveAll(x => !x.IsValidNflGame);
+                    _odds.Events.RemoveAll(x => x.EventDateTime < _thisWeekStart || x.EventDateTime > _thisWeekEnd);
                 }
             }
             catch { }
@@ -53,21 +61,17 @@ namespace ConfidencePoolAnalyzer
         {
             if (_scoreStrip != null && _scoreStrip.Games != null)
             {
-                foreach (NflGame game in _scoreStrip.Games)
-                {
-                    matchups.Add(new Matchup(game.Away, game.Home, 0.5));
-                }
+                matchups.AddRange(_scoreStrip.Games.Select(x => new Matchup(x.Away, x.Home, 0.5)));
             }
 
             if (_odds != null && _odds.Events != null)
             {
-                foreach (Event ev in _odds.Events)
+                foreach (Matchup m in _odds.Events.Select(ev => new Matchup(
+                    ev.Participants.First(x => !x.IsHome).Name, 
+                    ev.Participants.First(x => x.IsHome).Name, 
+                    0.5)).Where(m => !matchups.Any(x => x.Away == m.Away && x.Home == m.Home)))
                 {
-                    Matchup m = new Matchup(
-                        ev.Participants.First(x => !x.IsHome).Name, 
-                        ev.Participants.First(x => x.IsHome).Name, 
-                        0.5);
-                    if (!matchups.Any(x => x.Away == m.Away && x.Home == m.Home)) matchups.Add(m);
+                    matchups.Add(m);
                 }
             }
         }
@@ -81,7 +85,7 @@ namespace ConfidencePoolAnalyzer
                 m.Quarter = game.Quarter;
                 m.TimeLeft = game.TimeLeft;
                 m.Possession = game.Possession;
-                m.Redzone = game.RedZone == 1;
+                m.RedZone = game.RedZone == 1;
             }
             catch { }
 
@@ -143,6 +147,9 @@ namespace ConfidencePoolAnalyzer
         [XmlElement("league")]
         public string League { get; set; }
 
+        [XmlElement("event_datetimeGMT")]
+        public string EventDateTimeGmt { get; set; }
+
         [XmlArray("participants")]
         [XmlArrayItem("participant")]
         public List<Participant> Participants { get; set; }
@@ -150,6 +157,14 @@ namespace ConfidencePoolAnalyzer
         [XmlArray("periods")]
         [XmlArrayItem("period")]
         public List<Period> Periods { get; set; }
+
+        public DateTime EventDateTime
+        {
+            get
+            {
+                return EventDateTimeGmt == null ? DateTime.Now : DateTime.ParseExact(EventDateTimeGmt, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal).ToLocalTime();
+            }
+        }
 
         public bool IsValidNflGame
         {
