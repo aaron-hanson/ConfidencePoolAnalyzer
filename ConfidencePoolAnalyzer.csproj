@@ -8,7 +8,7 @@
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ConfidencePoolAnalyzer</RootNamespace>
-    <AssemblyName>ConfidenceOutcomes</AssemblyName>
+    <AssemblyName>ConfidencePoolAnalyzer</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <PublishUrl>publish\</PublishUrl>
