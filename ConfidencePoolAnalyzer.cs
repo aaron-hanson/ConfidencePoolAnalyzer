@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Configuration;
+using System.Web.Script.Serialization;
 
 namespace ConfidencePoolAnalyzer
 {
@@ -52,18 +55,20 @@ namespace ConfidencePoolAnalyzer
             FtpUser = config.AppSettings.Settings["ftpuser"].Value;
             FtpPass = config.AppSettings.Settings["ftppass"].Value;
 
-            PlayerEntries.Add(new PlayerEntry("Aaron Hanson", -1, "BAL", 14, "CAR", 11, "CIN", 13, "NE", 2, "TEN", 6, "WAS", 15, "NYG", 7, "MIA", 4, "NO", 3, "TB", 8, "SEA", 10, "DEN", 16, "GB", 9, "OAK", 5, "SF", 12, "PHI", 1));
-            PlayerEntries.Add(new PlayerEntry("A.J. Smith", -1, "BAL", 3, "DET", 1, "CIN", 7, "NE", 14, "DAL", 5, "WAS", 8, "ARI", 10, "BUF", 6, "NO", 12, "TB", 11, "SEA", 13, "DEN", 16, "GB", 15, "HOU", 4, "SF", 9, "IND", 2));
-            PlayerEntries.Add(new PlayerEntry("Antonio Cerda", -1, "PIT", 16, "DET", 15, "ATL", 14, "NE", 13, "TEN", 12, "WAS", 11, "ARI", 2, "MIA", 9, "NO", 8, "TB", 7, "SEA", 6, "DEN", 5, "GB", 4, "HOU", 3, "CHI", 10, "IND", 1));
-            PlayerEntries.Add(new PlayerEntry("ashley chambe", -1, "PIT", 9, "DET", 2, "CIN", 3, "NE", 10, "TEN", 7, "WAS", 6, "ARI", 8, "BUF", 1, "NO", 12, "TB", 13, "SEA", 15, "DEN", 16, "GB", 11, "HOU", 5, "SF", 14, "IND", 4));
-            PlayerEntries.Add(new PlayerEntry("Chris Vodicka", -1, "PIT", 16, "CAR", 3, "CIN", 6, "NE", 11, "TEN", 8, "JAC", 5, "ARI", 12, "BUF", 4, "NO", 13, "TB", 7, "SEA", 14, "DEN", 15, "GB", 9, "HOU", 2, "SF", 10, "PHI", 1));
-            PlayerEntries.Add(new PlayerEntry("Desmond Hui", -1, "BAL", 10, "CAR", 6, "CIN", 7, "NE", 12, "DAL", 3, "JAC", 2, "NYG", 1, "MIA", 8, "NO", 13, "TB", 11, "SEA", 15, "DEN", 16, "GB", 14, "OAK", 4, "SF", 9, "PHI", 5));
-            PlayerEntries.Add(new PlayerEntry("Jessica Kopic", -1, "PIT", 2, "DET", 15, "CIN", 3, "NE", 9, "TEN", 8, "WAS", 7, "ARI", 5, "MIA", 1, "NO", 12, "TB", 10, "SEA", 11, "DEN", 16, "GB", 13, "HOU", 4, "SF", 14, "IND", 6));
-            PlayerEntries.Add(new PlayerEntry("Khayam Masud", -1, "PIT", 4, "DET", 5, "CIN", 9, "NE", 10, "TEN", 7, "JAC", 11, "ARI", 3, "MIA", 2, "NO", 13, "TB", 8, "SEA", 12, "DEN", 16, "GB", 14, "HOU", 1, "SF", 15, "IND", 6));
-            PlayerEntries.Add(new PlayerEntry("kurt n", -1, "PIT", 1, "CAR", 2, "CIN", 4, "NE", 14, "DAL", 7, "WAS", 8, "ARI", 9, "MIA", 3, "NO", 15, "TB", 12, "SEA", 13, "DEN", 10, "GB", 16, "HOU", 11, "SF", 6, "IND", 5));
-            PlayerEntries.Add(new PlayerEntry("Marisol Magan", -1, "PIT", 10, "DET", 8, "CIN", 3, "NE", 5, "TEN", 1, "WAS", 11, "ARI", 4, "MIA", 9, "NO", 16, "TB", 6, "SEA", 12, "DEN", 14, "GB", 15, "HOU", 7, "SF", 2, "IND", 13));
-            PlayerEntries.Add(new PlayerEntry("Paul Nix", -1, "BAL", 5, "DET", 9, "ATL", 7, "NE", 6, "TEN", 10, "JAC", 3, "ARI", 8, "MIA", 2, "NO", 15, "TB", 4, "SEA", 16, "KC", 13, "GB", 14, "HOU", 11, "SF", 12, "IND", 1));
-            PlayerEntries.Add(new PlayerEntry("Teresa Mendoz", -1, "BAL", 6, "CAR", 12, "CIN", 5, "NE", 13, "TEN", 4, "WAS", 3, "NYG", 2, "BUF", 8, "NO", 15, "STL", 1, "SEA", 11, "DEN", 14, "GB", 7, "OAK", 9, "SF", 16, "IND", 10));
+            TryScrapePoolEntries();
+
+            //PlayerEntries.Add(new PlayerEntry("Aaron Hanson", -1, "BAL", 14, "CAR", 11, "CIN", 13, "NE", 2, "TEN", 6, "WAS", 15, "NYG", 7, "MIA", 4, "NO", 3, "TB", 8, "SEA", 10, "DEN", 16, "GB", 9, "OAK", 5, "SF", 12, "PHI", 1));
+            //PlayerEntries.Add(new PlayerEntry("A.J. Smith", -1, "BAL", 3, "DET", 1, "CIN", 7, "NE", 14, "DAL", 5, "WAS", 8, "ARI", 10, "BUF", 6, "NO", 12, "TB", 11, "SEA", 13, "DEN", 16, "GB", 15, "HOU", 4, "SF", 9, "IND", 2));
+            //PlayerEntries.Add(new PlayerEntry("Antonio Cerda", -1, "PIT", 16, "DET", 15, "ATL", 14, "NE", 13, "TEN", 12, "WAS", 11, "ARI", 2, "MIA", 9, "NO", 8, "TB", 7, "SEA", 6, "DEN", 5, "GB", 4, "HOU", 3, "CHI", 10, "IND", 1));
+            //PlayerEntries.Add(new PlayerEntry("ashley chambe", -1, "PIT", 9, "DET", 2, "CIN", 3, "NE", 10, "TEN", 7, "WAS", 6, "ARI", 8, "BUF", 1, "NO", 12, "TB", 13, "SEA", 15, "DEN", 16, "GB", 11, "HOU", 5, "SF", 14, "IND", 4));
+            //PlayerEntries.Add(new PlayerEntry("Chris Vodicka", -1, "PIT", 16, "CAR", 3, "CIN", 6, "NE", 11, "TEN", 8, "JAC", 5, "ARI", 12, "BUF", 4, "NO", 13, "TB", 7, "SEA", 14, "DEN", 15, "GB", 9, "HOU", 2, "SF", 10, "PHI", 1));
+            //PlayerEntries.Add(new PlayerEntry("Desmond Hui", -1, "BAL", 10, "CAR", 6, "CIN", 7, "NE", 12, "DAL", 3, "JAC", 2, "NYG", 1, "MIA", 8, "NO", 13, "TB", 11, "SEA", 15, "DEN", 16, "GB", 14, "OAK", 4, "SF", 9, "PHI", 5));
+            //PlayerEntries.Add(new PlayerEntry("Jessica Kopic", -1, "PIT", 2, "DET", 15, "CIN", 3, "NE", 9, "TEN", 8, "WAS", 7, "ARI", 5, "MIA", 1, "NO", 12, "TB", 10, "SEA", 11, "DEN", 16, "GB", 13, "HOU", 4, "SF", 14, "IND", 6));
+            //PlayerEntries.Add(new PlayerEntry("Khayam Masud", -1, "PIT", 4, "DET", 5, "CIN", 9, "NE", 10, "TEN", 7, "JAC", 11, "ARI", 3, "MIA", 2, "NO", 13, "TB", 8, "SEA", 12, "DEN", 16, "GB", 14, "HOU", 1, "SF", 15, "IND", 6));
+            //PlayerEntries.Add(new PlayerEntry("kurt n", -1, "PIT", 1, "CAR", 2, "CIN", 4, "NE", 14, "DAL", 7, "WAS", 8, "ARI", 9, "MIA", 3, "NO", 15, "TB", 12, "SEA", 13, "DEN", 10, "GB", 16, "HOU", 11, "SF", 6, "IND", 5));
+            //PlayerEntries.Add(new PlayerEntry("Marisol Magan", -1, "PIT", 10, "DET", 8, "CIN", 3, "NE", 5, "TEN", 1, "WAS", 11, "ARI", 4, "MIA", 9, "NO", 16, "TB", 6, "SEA", 12, "DEN", 14, "GB", 15, "HOU", 7, "SF", 2, "IND", 13));
+            //PlayerEntries.Add(new PlayerEntry("Paul Nix", -1, "BAL", 5, "DET", 9, "ATL", 7, "NE", 6, "TEN", 10, "JAC", 3, "ARI", 8, "MIA", 2, "NO", 15, "TB", 4, "SEA", 16, "KC", 13, "GB", 14, "HOU", 11, "SF", 12, "IND", 1));
+            //PlayerEntries.Add(new PlayerEntry("Teresa Mendoz", -1, "BAL", 6, "CAR", 12, "CIN", 5, "NE", 13, "TEN", 4, "WAS", 3, "NYG", 2, "BUF", 8, "NO", 15, "STL", 1, "SEA", 11, "DEN", 14, "GB", 7, "OAK", 9, "SF", 16, "IND", 10));
 
             AddRandomEntries(0);
         }
@@ -85,6 +90,50 @@ namespace ConfidencePoolAnalyzer
             }
 
             Console.ReadLine();
+        }
+
+        static void TryScrapePoolEntries()
+        {
+            CookieAwareWebClient wc = new CookieAwareWebClient();
+
+            var loginData = new NameValueCollection
+            {
+                {"dummy::login_form", "1"},
+                {"form::login_form", "login_form"},
+                {"xurl", @"http://statsnfl.football.cbssports.com/"},
+                {"master_product", "150"},
+                {"vendor", "cbssports"},
+                {"userid", "***REMOVED***"},
+                {"password", "***REMOVED***"},
+                {"_submit", "Sign In"}
+            };
+
+            wc.UploadValues(@"http://www.cbssports.com/login", "POST", loginData);
+            string fullHtml = wc.DownloadString(@"http://statsnfl.football.cbssports.com/office-pool/standings/live");
+
+            Match data = Regex.Match(fullHtml, @"new CBSi.app.OPMLiveStandings\(.*?({.*?})\s*\);", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            string cleanData = Regex.Replace(data.Groups[1].ToString(), @"""time"":""[^""]*"",", "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+            var ser = new JavaScriptSerializer();
+            Dictionary<string, object> result = (Dictionary<string, object>)ser.DeserializeObject(cleanData);
+
+            foreach (Dictionary<string, object> team in (object[])result["teams"])
+            {
+                if (!team.ContainsKey("picks")) continue;
+                string name = team["name"].ToString();
+                PlayerEntry entry = new PlayerEntry(name);
+                foreach (KeyValuePair<string, object> pick in (Dictionary<string, Object>)team["picks"])
+                {
+                    if (pick.Key == "mnf") continue;
+                    string game = pick.Key;
+                    Dictionary<string, object> pickData = (Dictionary<string, object>)pick.Value;
+                    string winner = pickData["winner"].ToString();
+                    int points = int.Parse(pickData["weight"].ToString());
+                    entry.AddPick(winner, points);
+                }
+                PlayerEntries.Add(entry);
+            }
+
         }
 
         static void LiveUpdateMode()

@@ -8,7 +8,7 @@ namespace ConfidencePoolAnalyzer
     class PlayerEntry
     {
         public string Name;
-        public List<GamePick> GamePicks;
+        public List<GamePick> GamePicks = new List<GamePick>();
 
         public double LikelyScore;
         public double MaxScore;
@@ -16,13 +16,16 @@ namespace ConfidencePoolAnalyzer
         public double OutrightWinProb, TiedProb, WinProb, OverallWinProb;
         public double WeightedRank;
         public double Probability;
-        public int Bits;
+        public int Bits = -1;
 
-        public PlayerEntry(string name, int bits, params object[] picks)
+        public PlayerEntry(string name)
         {
             Name = name;
+        }
+
+        public PlayerEntry(string name, int bits, params object[] picks) : this(name)
+        {
             Bits = bits;
-            GamePicks = new List<GamePick>();
             if (picks != null)
             {
                 for (int i = 0; i < picks.Length; i += 2)
@@ -41,6 +44,11 @@ namespace ConfidencePoolAnalyzer
                     bitsLeft--;
                 }
             }
+        }
+
+        public void AddPick(string winner, int points)
+        {
+            GamePicks.Add(new GamePick(winner, points));
         }
 
         public void SetProbability()
