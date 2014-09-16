@@ -27,7 +27,7 @@ namespace ConfidencePoolAnalyzer
             _oddsSerializer = new XmlSerializer(typeof(PinnacleOdds));
 
             DateTime now = DateTime.Now.Date;
-            _thisWeekEnd = now.AddDays((((int)DayOfWeek.Monday - (int)now.DayOfWeek + 7) % 7) + 1);
+            _thisWeekEnd = now.AddDays((((int)DayOfWeek.Wednesday - (int)now.DayOfWeek + 7) % 7) + 1);
             _thisWeekStart = _thisWeekEnd.AddDays(-7);
         }
 
