@@ -161,7 +161,7 @@ namespace ConfidencePoolAnalyzer
         {
             return string.Format("{0} {1} {2}-{3} {4} {5} {6}",
                 GameStatus.PadRight(10),
-                (Away + (Possession == Away ? (RedZone ? "#" : "*") : " ")).PadLeft(4),
+                (Away + (Possession == Away ? (RedZone ? "*" : ".") : " ")).PadLeft(4),
                 AwayScore.ToString(CultureInfo.InvariantCulture).PadLeft(2),
                 HomeScore.ToString(CultureInfo.InvariantCulture).PadRight(2),
                 ((Possession == Home ? (RedZone ? "*" : ".") : " ") + Home).PadRight(4),
