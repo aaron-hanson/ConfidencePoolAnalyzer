@@ -24,7 +24,8 @@ namespace ConfidencePoolAnalyzer
         private readonly bool _doUpload;
         private readonly bool _forceUpdates;
         private DateTime _nextScrapeTime;
-        private DateTime _poolEntriesScrapeTime;
+        private DateTime _poolScrapeTime;
+        private DateTime _nextPoolScrapeTime;
         private readonly string _ftpHost, _ftpUser, _ftpPass, _cbsUser, _cbsPass;
         private readonly List<string> _entryWinCheck = new List<string>();
 
@@ -61,8 +62,9 @@ namespace ConfidencePoolAnalyzer
             }
 
             DateTime now = DateTime.Now;
-            _poolEntriesScrapeTime = new DateTime(now.Year, now.Month, now.Day, 19, 31, 0);
-            while (_poolEntriesScrapeTime.DayOfWeek != DayOfWeek.Thursday) _poolEntriesScrapeTime += TimeSpan.FromDays(1);
+            _nextPoolScrapeTime = now.AddHours(1);
+            _poolScrapeTime = new DateTime(now.Year, now.Month, now.Day, 19, 30, 0);
+            while (_poolScrapeTime.DayOfWeek != DayOfWeek.Thursday) _poolScrapeTime += TimeSpan.FromDays(1);
 
             TryScrapePoolEntries();
             AddRandomEntries(0);
@@ -87,16 +89,18 @@ namespace ConfidencePoolAnalyzer
 
         internal void LiveUpdateMode()
         {
+            bool poolEntriesDirty = false;
             StringBuilder buf = new StringBuilder();
             while (true)
             {
                 buf.Clear();
 
                 Matchups.ForEach(LiveNflData.Instance.UpdateMatchup);
-                if (_forceUpdates || Matchups.Any(x => x.IsDirty))
+                if (_forceUpdates || poolEntriesDirty || Matchups.Any(x => x.IsDirty))
                 {
                     buf.AppendLine("UPDATED: " + DateTime.Now);
                     buf.AppendLine();
+
                     Matchups.Where(x => x.IsDirty).ToList().ForEach(x => x.Recalc());
 
                     buf.AppendLine("STATUS     AWAY SCORE HOME  LINE HOMEWIN%");
@@ -116,6 +120,11 @@ namespace ConfidencePoolAnalyzer
                         Console.WriteLine("Dirty win pcts: " + string.Join(" ", Matchups.Where(x => x.IsWinPctDirty).Select(x => x.Home)));
                         Possibilities.ForEach(x => x.RecalcProbability());
                         Matchups.ForEach(x => x.IsWinPctDirty = false);
+                        CalculateOutcomes();
+                    }
+                    else if (poolEntriesDirty)
+                    {
+                        Console.WriteLine("Pool entries dirty.");
                         CalculateOutcomes();
                     }
 
@@ -154,9 +163,16 @@ namespace ConfidencePoolAnalyzer
                 _nextScrapeTime = DateTime.Now.AddMilliseconds(_liveUpdatePollDelay);
                 LiveNflData.Instance.Scrape();
 
-                if (DateTime.Now < _poolEntriesScrapeTime) continue;
+                DateTime now = DateTime.Now;
+                if (now < _nextPoolScrapeTime && now < _poolScrapeTime)
+                {
+                    poolEntriesDirty = false;
+                    continue;
+                }
+                poolEntriesDirty = true;
                 TryScrapePoolEntries();
-                if (DateTime.Now - _poolEntriesScrapeTime > TimeSpan.FromMinutes(5)) _poolEntriesScrapeTime += TimeSpan.FromDays(7);
+                _nextPoolScrapeTime += TimeSpan.FromHours(1);
+                if (DateTime.Now - _poolScrapeTime > TimeSpan.FromMinutes(5)) _poolScrapeTime += TimeSpan.FromDays(7);
             }
         }
 
