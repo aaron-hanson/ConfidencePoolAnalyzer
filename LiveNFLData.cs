@@ -24,6 +24,7 @@ namespace ConfidencePoolAnalyzer
         private LiveNflData()
         {
             _client = new WebClient();
+            _client.Headers.Add(HttpRequestHeader.UserAgent, "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.103 Safari/537.36");
             _nflSerializer = new XmlSerializer(typeof(NflScoreStrip));
             _oddsSerializer = new XmlSerializer(typeof(PinnacleOdds));
 
