@@ -280,7 +280,7 @@ namespace ConfidencePoolAnalyzer
             buf.AppendLine("\t\tOVERALL\tSOLO\tTIED\t\tAVG.\tMAX\tCURRENT\tAVG.");
             buf.AppendLine("ENTRY NAME\tWIN%\tWIN%\tWIN%\tTREE%\tPOINTS\tPOINTS\tPOINTS\tRANK");
             buf.AppendLine("-------------------------------------------------------------------------------");
-            foreach (PlayerEntry entry in PlayerEntries.OrderByDescending(x => x.WinProb).ThenBy(x => x.WeightedRank))
+            foreach (PlayerEntry entry in PlayerEntries.OrderByDescending(x => x.WinProb).ThenBy(x => x.WeightedRank).ThenBy(x => x.Name))
             {
                 if (PlayerEntriesKnown)
                 {

@@ -60,7 +60,10 @@ namespace ConfidencePoolAnalyzer
                         Console.WriteLine(_odds.Games.Count);
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                }
             }
 
             try
@@ -72,7 +75,10 @@ namespace ConfidencePoolAnalyzer
                     Console.WriteLine(_scoreStrip.Games.Count);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
         }
 
         internal void BuildMatchups(List<Matchup> matchups)
