@@ -101,7 +101,7 @@ namespace ConfidencePoolAnalyzer
                 string fullHtml = wc.DownloadString(@"http://statsnfl.football.cbssports.com/office-pool/standings/live");
 
                 Match data = Regex.Match(fullHtml, @"new CBSi.app.OPMLiveStandings\(.*?({.*?})\s*\);", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                string cleanData = Regex.Replace(data.Groups[1].ToString(), @"""time"":""[^""]*"",", "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                string cleanData = Regex.Replace(data.Groups[1].ToString(), @"""time"":""[^""]*"",?", "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
                 var ser = new JavaScriptSerializer();
                 Dictionary<string, object> result = (Dictionary<string, object>)ser.DeserializeObject(cleanData);
@@ -120,7 +120,7 @@ namespace ConfidencePoolAnalyzer
                         int points = int.Parse(pickData["weight"].ToString());
                         entry.AddPick(winner, points);
                     }
-                    PlayerEntries.Add(entry);
+                    if (entry.GamePicks.Any()) PlayerEntries.Add(entry);
                 }
             }
         }
