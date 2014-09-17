@@ -78,7 +78,7 @@
     <None Include="ftp.cert">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="ftp.config">
+    <None Include="passwd.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="App.config" />
