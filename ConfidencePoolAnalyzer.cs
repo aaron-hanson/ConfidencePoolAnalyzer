@@ -16,6 +16,7 @@ namespace ConfidencePoolAnalyzer
     class ConfidencePoolAnalyzer
     {
         private static readonly int LiveUpdatePollDelay;
+        private static readonly bool DoUpload;
         private static readonly bool ForceUpdates;
         private static DateTime _nextScrapeTime;
 
@@ -28,10 +29,20 @@ namespace ConfidencePoolAnalyzer
 
         static ConfidencePoolAnalyzer()
         {
+            DoUpload = "true".Equals(ConfigurationManager.AppSettings["DoUpload"], StringComparison.InvariantCultureIgnoreCase);
             ForceUpdates = "true".Equals(ConfigurationManager.AppSettings["ForceUpdates"], StringComparison.InvariantCultureIgnoreCase);
             LiveUpdatePollDelay = int.TryParse(ConfigurationManager.AppSettings["LiveUpdatePollDelayMillis"], out LiveUpdatePollDelay) ? LiveUpdatePollDelay : 20000;
             if (ConfigurationManager.AppSettings["EntryWinCheck"] != null && ConfigurationManager.AppSettings["EntryWinCheck"].Length > 0)
                 EntryWinCheck.AddRange(ConfigurationManager.AppSettings["EntryWinCheck"].Split(','));
+
+            ExeConfigurationFileMap configFileMap = new ExeConfigurationFileMap { ExeConfigFilename = "passwd.config" };
+            Configuration config = ConfigurationManager.OpenMappedExeConfiguration(configFileMap,
+                ConfigurationUserLevel.None);
+            FtpHost = config.AppSettings.Settings["ftphost"].Value;
+            FtpUser = config.AppSettings.Settings["ftpuser"].Value;
+            FtpPass = config.AppSettings.Settings["ftppass"].Value;
+            CbsUser = config.AppSettings.Settings["cbsuser"].Value;
+            CbsPass = config.AppSettings.Settings["cbspass"].Value;
 
             LiveNflData.Instance.Scrape();
             _nextScrapeTime = DateTime.Now.AddMilliseconds(LiveUpdatePollDelay);
@@ -48,18 +59,9 @@ namespace ConfidencePoolAnalyzer
                 }
             }
 
-            ExeConfigurationFileMap configFileMap = new ExeConfigurationFileMap {ExeConfigFilename = "passwd.config"};
-            Configuration config = ConfigurationManager.OpenMappedExeConfiguration(configFileMap,
-                ConfigurationUserLevel.None);
-            FtpHost = config.AppSettings.Settings["ftphost"].Value;
-            FtpUser = config.AppSettings.Settings["ftpuser"].Value;
-            FtpPass = config.AppSettings.Settings["ftppass"].Value;
-            CbsUser = config.AppSettings.Settings["cbsuser"].Value;
-            CbsPass = config.AppSettings.Settings["cbspass"].Value;
-
             TryScrapePoolEntries();
 
-            AddRandomEntries(0);
+            AddRandomEntries(11);
         }
 
         static void Main()
@@ -159,27 +161,32 @@ namespace ConfidencePoolAnalyzer
 
                     buf.Append(GetTable());
                     Console.Write(buf.ToString());
-                    buf.Insert(0, @"<!DOCTYPE html><html><head><title>STATS Conf Pool LIVE!</title><meta http-equiv=""refresh"" content=""20""/>" +
-                        @"<meta name=""HandheldFriendly"" content=""True"" />" +
-                        @"<meta name=""MobileOptimized"" content=""320"" />" +
-                        @"<meta name=""viewport"" content=""width=device-width, initial-scale=1"" />" +
-                        @"<meta name=""viewport"" content=""initial-scale=1"" media=""(device-height: 568px)"" />" +
-                        @"<meta http-equiv=""cleartype"" content=""on"" />" + 
-                        @"</head><body><pre>" + Environment.NewLine);
-                    buf.AppendLine("LEGEND:");
-                    buf.AppendLine("   OVERALL WIN%:  The probability of winning the pool either outright or tied");
-                    buf.AppendLine("                  with others (tied scenario's chances are divided equally");
-                    buf.AppendLine("                  between all players tied).");
-                    buf.AppendLine("      SOLO WIN%:  The probability of winning the pool outright, with no ties.");
-                    buf.AppendLine("      TIED WIN%:  The probability of tying for the win with other players.");
-                    buf.AppendLine("          TREE%:  The probability of winning the pool outright or tied, if all");
-                    buf.AppendLine("                  unfinished games were coin flips (50/50 chance).");
-                    buf.AppendLine("    AVG. POINTS:  The average number of points expected for this player.");
-                    buf.AppendLine("     MAX POINTS:  The maximum possible number of points for this player.");
-                    buf.AppendLine(" CURRENT POINTS:  The current number of points for this player.");
-                    buf.AppendLine("      AVG. RANK:  The average finishing place expected for this player.");
-                    buf.Append(Environment.NewLine + @"</pre></body></html>");
-                    UploadLatestToAltdex(buf.ToString());
+
+                    if (DoUpload)
+                    {
+                        buf.Insert(0,
+                            @"<!DOCTYPE html><html><head><title>STATS Conf Pool LIVE!</title><meta http-equiv=""refresh"" content=""20""/>" +
+                            @"<meta name=""HandheldFriendly"" content=""True"" />" +
+                            @"<meta name=""MobileOptimized"" content=""320"" />" +
+                            @"<meta name=""viewport"" content=""width=device-width, initial-scale=1"" />" +
+                            @"<meta name=""viewport"" content=""initial-scale=1"" media=""(device-height: 568px)"" />" +
+                            @"<meta http-equiv=""cleartype"" content=""on"" />" +
+                            @"</head><body><pre>" + Environment.NewLine);
+                        buf.AppendLine("LEGEND:");
+                        buf.AppendLine("   OVERALL WIN%:  The probability of winning the pool either outright or tied");
+                        buf.AppendLine("                  with others (tied scenario's chances are divided equally");
+                        buf.AppendLine("                  between all players tied).");
+                        buf.AppendLine("      SOLO WIN%:  The probability of winning the pool outright, with no ties.");
+                        buf.AppendLine("      TIED WIN%:  The probability of tying for the win with other players.");
+                        buf.AppendLine("          TREE%:  The probability of winning the pool outright or tied, if all");
+                        buf.AppendLine("                  unfinished games were coin flips (50/50 chance).");
+                        buf.AppendLine("    AVG. POINTS:  The average number of points expected for this player.");
+                        buf.AppendLine("     MAX POINTS:  The maximum possible number of points for this player.");
+                        buf.AppendLine(" CURRENT POINTS:  The current number of points for this player.");
+                        buf.AppendLine("      AVG. RANK:  The average finishing place expected for this player.");
+                        buf.Append(Environment.NewLine + @"</pre></body></html>");
+                        UploadLatestToAltdex(buf.ToString());
+                    }
                 }
 
                 while (DateTime.Now < _nextScrapeTime) Thread.Sleep(1000);
