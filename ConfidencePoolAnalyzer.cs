@@ -24,6 +24,7 @@ namespace ConfidencePoolAnalyzer
         private readonly bool _doUpload;
         private readonly bool _forceUpdates;
         private DateTime _nextScrapeTime;
+        private DateTime _poolEntriesScrapeTime;
         private readonly string _ftpHost, _ftpUser, _ftpPass, _cbsUser, _cbsPass;
         private readonly List<string> _entryWinCheck = new List<string>();
 
@@ -58,6 +59,10 @@ namespace ConfidencePoolAnalyzer
                     if (double.TryParse(gamedata[1], out spread)) Matchups.First(x => x.Home == gamedata[0]).Spread = spread;
                 }
             }
+
+            DateTime now = DateTime.Now;
+            _poolEntriesScrapeTime = new DateTime(now.Year, now.Month, now.Day, 19, 31, 0);
+            while (_poolEntriesScrapeTime.DayOfWeek != DayOfWeek.Thursday) _poolEntriesScrapeTime += TimeSpan.FromDays(1);
 
             TryScrapePoolEntries();
             AddRandomEntries(0);
@@ -148,11 +153,16 @@ namespace ConfidencePoolAnalyzer
                 while (DateTime.Now < _nextScrapeTime) Thread.Sleep(1000);
                 _nextScrapeTime = DateTime.Now.AddMilliseconds(_liveUpdatePollDelay);
                 LiveNflData.Instance.Scrape();
+
+                if (DateTime.Now < _poolEntriesScrapeTime) continue;
+                TryScrapePoolEntries();
+                if (DateTime.Now - _poolEntriesScrapeTime > TimeSpan.FromMinutes(5)) _poolEntriesScrapeTime += TimeSpan.FromDays(7);
             }
         }
 
         internal void TryScrapePoolEntries()
         {
+            Console.Write("Scraping CBS entries...");
             using (CookieAwareWebClient wc = new CookieAwareWebClient())
             {
                 var loginData = new NameValueCollection
@@ -176,21 +186,24 @@ namespace ConfidencePoolAnalyzer
                 var ser = new JavaScriptSerializer();
                 Dictionary<string, object> result = (Dictionary<string, object>)ser.DeserializeObject(cleanData);
 
-                foreach (Dictionary<string, object> team in (object[])result["teams"])
+                if (!((object[]) result["teams"]).Any()) return;
+                PlayerEntries.Clear();
+                foreach (Dictionary<string, object> team in (object[]) result["teams"])
                 {
                     if (!team.ContainsKey("picks")) continue;
                     string name = team["name"].ToString();
                     PlayerEntry entry = new PlayerEntry(name);
-                    foreach (KeyValuePair<string, object> pick in (Dictionary<string, Object>)team["picks"])
+                    foreach (KeyValuePair<string, object> pick in (Dictionary<string, Object>) team["picks"])
                     {
                         if (pick.Key == "mnf") continue;
-                        Dictionary<string, object> pickData = (Dictionary<string, object>)pick.Value;
+                        Dictionary<string, object> pickData = (Dictionary<string, object>) pick.Value;
                         string winner = pickData["winner"].ToString();
                         int points = int.Parse(pickData["weight"].ToString(), CultureInfo.InvariantCulture);
                         entry.AddPick(winner, points);
                     }
-                    if (entry.GamePicks.Any()) PlayerEntries.Add(entry);
+                    PlayerEntries.Add(entry);
                 }
+                Console.WriteLine(PlayerEntries.Count);
             }
         }
 
@@ -377,10 +390,10 @@ namespace ConfidencePoolAnalyzer
                 if (entryNames.Contains(entry.Name)) throw new Exception("duplicate entry name: " + entry.Name);
                 entryNames.Add(entry.Name);
 
-                if (entry.GamePicks.Count() != numMatchups) throw new Exception(entry.Name + " has wrong number of picks: " + entry.GamePicks.Count());
+                //if (entry.GamePicks.Count() != numMatchups) throw new Exception(entry.Name + " has wrong number of picks: " + entry.GamePicks.Count());
 
                 int pointsTotExpected = (int)((16.5 * numMatchups) - (Math.Pow(numMatchups, 2) / 2));
-                if (entry.GamePicks.Sum(x => x.Points) != pointsTotExpected) throw new Exception(entry.Name + " has invalid points total");
+                //if (entry.GamePicks.Sum(x => x.Points) != pointsTotExpected) throw new Exception(entry.Name + " has invalid points total");
 
                 List<string> teamsPicked = new List<string>();
                 List<int> pointsPicked = new List<int>();
