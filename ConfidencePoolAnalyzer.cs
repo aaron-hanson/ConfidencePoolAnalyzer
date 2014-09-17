@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -13,39 +14,38 @@ using System.Web.Script.Serialization;
 
 namespace ConfidencePoolAnalyzer
 {
-    class ConfidencePoolAnalyzer
+    internal class ConfidencePoolAnalyzer
     {
-        private static readonly int LiveUpdatePollDelay;
-        private static readonly bool DoUpload;
-        private static readonly bool ForceUpdates;
-        private static DateTime _nextScrapeTime;
+        internal static List<Matchup> Matchups = new List<Matchup>();
+        internal static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
+        internal static List<WeekPossibility> Possibilities = new List<WeekPossibility>();
+        
+        private readonly int _liveUpdatePollDelay;
+        private readonly bool _doUpload;
+        private readonly bool _forceUpdates;
+        private DateTime _nextScrapeTime;
+        private readonly string _ftpHost, _ftpUser, _ftpPass, _cbsUser, _cbsPass;
+        private readonly List<string> _entryWinCheck = new List<string>();
 
-        public static List<Matchup> Matchups = new List<Matchup>();
-        public static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
-        public static List<WeekPossibility> Possibilities = new List<WeekPossibility>();
-        public static List<string> EntryWinCheck = new List<string>();
-
-        public static readonly string FtpHost, FtpUser, FtpPass, CbsUser, CbsPass;
-
-        static ConfidencePoolAnalyzer()
+        internal ConfidencePoolAnalyzer()
         {
-            DoUpload = "true".Equals(ConfigurationManager.AppSettings["DoUpload"], StringComparison.InvariantCultureIgnoreCase);
-            ForceUpdates = "true".Equals(ConfigurationManager.AppSettings["ForceUpdates"], StringComparison.InvariantCultureIgnoreCase);
-            LiveUpdatePollDelay = int.TryParse(ConfigurationManager.AppSettings["LiveUpdatePollDelayMillis"], out LiveUpdatePollDelay) ? LiveUpdatePollDelay : 20000;
+            _doUpload = "true".Equals(ConfigurationManager.AppSettings["DoUpload"], StringComparison.OrdinalIgnoreCase);
+            _forceUpdates = "true".Equals(ConfigurationManager.AppSettings["ForceUpdates"], StringComparison.OrdinalIgnoreCase);
+            _liveUpdatePollDelay = int.TryParse(ConfigurationManager.AppSettings["LiveUpdatePollDelayMillis"], out _liveUpdatePollDelay) ? _liveUpdatePollDelay : 20000;
             if (ConfigurationManager.AppSettings["EntryWinCheck"] != null && ConfigurationManager.AppSettings["EntryWinCheck"].Length > 0)
-                EntryWinCheck.AddRange(ConfigurationManager.AppSettings["EntryWinCheck"].Split(','));
+                _entryWinCheck.AddRange(ConfigurationManager.AppSettings["EntryWinCheck"].Split(','));
 
             ExeConfigurationFileMap configFileMap = new ExeConfigurationFileMap { ExeConfigFilename = "passwd.config" };
             Configuration config = ConfigurationManager.OpenMappedExeConfiguration(configFileMap,
                 ConfigurationUserLevel.None);
-            FtpHost = config.AppSettings.Settings["ftphost"].Value;
-            FtpUser = config.AppSettings.Settings["ftpuser"].Value;
-            FtpPass = config.AppSettings.Settings["ftppass"].Value;
-            CbsUser = config.AppSettings.Settings["cbsuser"].Value;
-            CbsPass = config.AppSettings.Settings["cbspass"].Value;
+            _ftpHost = config.AppSettings.Settings["ftphost"].Value;
+            _ftpUser = config.AppSettings.Settings["ftpuser"].Value;
+            _ftpPass = config.AppSettings.Settings["ftppass"].Value;
+            _cbsUser = config.AppSettings.Settings["cbsuser"].Value;
+            _cbsPass = config.AppSettings.Settings["cbspass"].Value;
 
             LiveNflData.Instance.Scrape();
-            _nextScrapeTime = DateTime.Now.AddMilliseconds(LiveUpdatePollDelay);
+            _nextScrapeTime = DateTime.Now.AddMilliseconds(_liveUpdatePollDelay);
             LiveNflData.Instance.BuildMatchups(Matchups);
 
             // temp fix for week 2 matchups that are final
@@ -60,20 +60,18 @@ namespace ConfidencePoolAnalyzer
             }
 
             TryScrapePoolEntries();
+            AddRandomEntries(0);
 
-            AddRandomEntries(11);
+            ValidateLists();
+            BuildWeekPossibilities();
         }
 
-        static void Main()
+        internal static void Main()
         {
             try
             {
-                ValidateLists();
-                BuildWeekPossibilities();                
-                LiveUpdateMode();
-
-                //PrintGameChangers();
-                //PrintWinningWeekPossibilities();
+                ConfidencePoolAnalyzer analyzer = new ConfidencePoolAnalyzer();
+                analyzer.LiveUpdateMode();
             }
             catch (Exception ex)
             {
@@ -83,51 +81,7 @@ namespace ConfidencePoolAnalyzer
             Console.ReadLine();
         }
 
-        static void TryScrapePoolEntries()
-        {
-            using (CookieAwareWebClient wc = new CookieAwareWebClient())
-            {
-                var loginData = new NameValueCollection
-                {
-                    {"dummy::login_form", "1"},
-                    {"form::login_form", "login_form"},
-                    {"xurl", @"http://statsnfl.football.cbssports.com/"},
-                    {"master_product", "150"},
-                    {"vendor", "cbssports"},
-                    {"userid", CbsUser},
-                    {"password", CbsPass},
-                    {"_submit", "Sign In"}
-                };
-
-                wc.UploadValues(@"http://www.cbssports.com/login", "POST", loginData);
-                string fullHtml = wc.DownloadString(@"http://statsnfl.football.cbssports.com/office-pool/standings/live");
-
-                Match data = Regex.Match(fullHtml, @"new CBSi.app.OPMLiveStandings\(.*?({.*?})\s*\);", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                string cleanData = Regex.Replace(data.Groups[1].ToString(), @"""time"":""[^""]*"",?", "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-
-                var ser = new JavaScriptSerializer();
-                Dictionary<string, object> result = (Dictionary<string, object>)ser.DeserializeObject(cleanData);
-
-                foreach (Dictionary<string, object> team in (object[])result["teams"])
-                {
-                    if (!team.ContainsKey("picks")) continue;
-                    string name = team["name"].ToString();
-                    PlayerEntry entry = new PlayerEntry(name);
-                    foreach (KeyValuePair<string, object> pick in (Dictionary<string, Object>)team["picks"])
-                    {
-                        if (pick.Key == "mnf") continue;
-                        string game = pick.Key;
-                        Dictionary<string, object> pickData = (Dictionary<string, object>)pick.Value;
-                        string winner = pickData["winner"].ToString();
-                        int points = int.Parse(pickData["weight"].ToString());
-                        entry.AddPick(winner, points);
-                    }
-                    if (entry.GamePicks.Any()) PlayerEntries.Add(entry);
-                }
-            }
-        }
-
-        static void LiveUpdateMode()
+        internal void LiveUpdateMode()
         {
             StringBuilder buf = new StringBuilder();
             while (true)
@@ -135,7 +89,7 @@ namespace ConfidencePoolAnalyzer
                 buf.Clear();
 
                 Matchups.ForEach(LiveNflData.Instance.UpdateMatchup);
-                if (ForceUpdates || Matchups.Any(x => x.IsDirty))
+                if (_forceUpdates || Matchups.Any(x => x.IsDirty))
                 {
                     buf.AppendLine("UPDATED: " + DateTime.Now);
                     buf.AppendLine();
@@ -162,7 +116,7 @@ namespace ConfidencePoolAnalyzer
                     buf.Append(GetTable());
                     Console.Write(buf.ToString());
 
-                    if (DoUpload)
+                    if (_doUpload)
                     {
                         buf.Insert(0,
                             @"<!DOCTYPE html><html><head><title>STATS Conf Pool LIVE!</title><meta http-equiv=""refresh"" content=""20""/>" +
@@ -190,17 +144,60 @@ namespace ConfidencePoolAnalyzer
                 }
 
                 while (DateTime.Now < _nextScrapeTime) Thread.Sleep(1000);
-                _nextScrapeTime = DateTime.Now.AddMilliseconds(LiveUpdatePollDelay);
+                _nextScrapeTime = DateTime.Now.AddMilliseconds(_liveUpdatePollDelay);
                 LiveNflData.Instance.Scrape();
             }
         }
 
-        static void UploadLatestToAltdex(string contents)
+        internal void TryScrapePoolEntries()
+        {
+            using (CookieAwareWebClient wc = new CookieAwareWebClient())
+            {
+                var loginData = new NameValueCollection
+                {
+                    {"dummy::login_form", "1"},
+                    {"form::login_form", "login_form"},
+                    {"xurl", @"http://statsnfl.football.cbssports.com/"},
+                    {"master_product", "150"},
+                    {"vendor", "cbssports"},
+                    {"userid", _cbsUser},
+                    {"password", _cbsPass},
+                    {"_submit", "Sign In"}
+                };
+
+                wc.UploadValues(@"http://www.cbssports.com/login", "POST", loginData);
+                string fullHtml = wc.DownloadString(@"http://statsnfl.football.cbssports.com/office-pool/standings/live");
+
+                Match data = Regex.Match(fullHtml, @"new CBSi.app.OPMLiveStandings\(.*?({.*?})\s*\);", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                string cleanData = Regex.Replace(data.Groups[1].ToString(), @"""time"":""[^""]*"",?", "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+                var ser = new JavaScriptSerializer();
+                Dictionary<string, object> result = (Dictionary<string, object>)ser.DeserializeObject(cleanData);
+
+                foreach (Dictionary<string, object> team in (object[])result["teams"])
+                {
+                    if (!team.ContainsKey("picks")) continue;
+                    string name = team["name"].ToString();
+                    PlayerEntry entry = new PlayerEntry(name);
+                    foreach (KeyValuePair<string, object> pick in (Dictionary<string, Object>)team["picks"])
+                    {
+                        if (pick.Key == "mnf") continue;
+                        Dictionary<string, object> pickData = (Dictionary<string, object>)pick.Value;
+                        string winner = pickData["winner"].ToString();
+                        int points = int.Parse(pickData["weight"].ToString(), CultureInfo.InvariantCulture);
+                        entry.AddPick(winner, points);
+                    }
+                    if (entry.GamePicks.Any()) PlayerEntries.Add(entry);
+                }
+            }
+        }
+
+        internal void UploadLatestToAltdex(string contents)
         {
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
 
-            string reqUri = String.Format("ftp://{0}/files/new.html", FtpHost);
-            NetworkCredential creds = new NetworkCredential(FtpUser, FtpPass);
+            string reqUri = String.Format(CultureInfo.InvariantCulture, "ftp://{0}/files/new.html", _ftpHost);
+            NetworkCredential creds = new NetworkCredential(_ftpUser, _ftpPass);
             X509Certificate cert = new X509Certificate("ftp.cert");
             X509Certificate2Collection certColl = new X509Certificate2Collection { cert };
 
@@ -224,14 +221,12 @@ namespace ConfidencePoolAnalyzer
             reqStream.Write(bytes, 0, bytes.Length);
             reqStream.Close();
             resp.Close();
-            resp.Dispose();
 
             FtpWebResponse renameResp = (FtpWebResponse)renameReq.GetResponse();
             renameResp.Close();
-            renameResp.Dispose();
         }
 
-        private static void PrintWinningWeekPossibilities()
+        internal static void PrintWinningWeekPossibilities()
         {
             List<string> entriesToPrint = new List<string> {"Aaron Hanson"};
             foreach (WeekPossibility wp in Possibilities.Where(x => x.PlayerScores.Count(y => entriesToPrint.Contains(y.Name) && y.Rank == 1) > 0
@@ -239,7 +234,7 @@ namespace ConfidencePoolAnalyzer
                                                         .OrderBy(x => x.Probability)) wp.Print();
         }
 
-        private static string GetTable()
+        internal static string GetTable()
         {
             StringBuilder buf = new StringBuilder();
             //buf.AppendLine("Confidence Pool Analysis for:  " + string.Join(" OR ", EntryWinCheck.ConvertAll(x => @"""" + x + @"""")));
@@ -251,7 +246,7 @@ namespace ConfidencePoolAnalyzer
             {
                 int wins = Possibilities.Count(x => x.PlayerScores.Count(y => y.Name.Equals(entry.Name) && y.Rank == 1) == 1);
                 double pct = (double) wins*100/Possibilities.Count();
-                buf.AppendLine(String.Format("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}", 
+                buf.AppendLine(String.Format(CultureInfo.InvariantCulture, "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}", 
                     entry.Name.PadRight(13), 
                     Math.Round(100*entry.OverallWinProb, 3),
                     Math.Round(100*entry.OutrightWinProb, 3), 
@@ -266,7 +261,7 @@ namespace ConfidencePoolAnalyzer
             return buf.ToString();
         }
 
-        static void PrintGameChangers()
+        internal void PrintGameChangers()
         {
             foreach (Matchup m in Matchups.Where(x => String.IsNullOrEmpty(x.Winner)))
             {
@@ -285,13 +280,13 @@ namespace ConfidencePoolAnalyzer
             }
         }
 
-        static double GetOverallWinProbability()
+        internal double GetOverallWinProbability()
         {
-            return Possibilities.Where(x => x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
-                                .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => EntryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
+            return Possibilities.Where(x => x.PlayerScores.Count(y => _entryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
+                                .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => _entryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
         }
 
-        static void AddRandomEntries(int numEntries)
+        internal static void AddRandomEntries(int numEntries)
         {
             Random rand = new Random();
             while (numEntries > 0)
@@ -339,7 +334,7 @@ namespace ConfidencePoolAnalyzer
             }
         }
 
-        static void BuildWeekPossibilities()
+        internal static void BuildWeekPossibilities()
         {
             Possibilities.Clear();
 
@@ -348,18 +343,18 @@ namespace ConfidencePoolAnalyzer
             for (int i = 0; i <= max; i++) Possibilities.Add(new WeekPossibility(i));
         }
 
-        static void CalculateOutcomes()
+        internal static void CalculateOutcomes()
         {
             // now calc entry scores and whatnot
             Possibilities.ForEach(x => x.CalcPlayerScores());
             PlayerEntries.ForEach(x => x.SetScoreData());
         }
 
-        static void ValidateLists()
+        internal void ValidateLists()
         {
-            foreach (string name in EntryWinCheck)
+            foreach (string name in _entryWinCheck.Where(name => !PlayerEntries.Any(x => x.Name.Equals(name))))
             {
-                if (!PlayerEntries.Any(x => x.Name.Equals(name))) throw new Exception("entrywincheck name doesn't match a player entry: " + name);
+                throw new Exception("entrywincheck name doesn't match a player entry: " + name);
             }
 
             List<string> matchupTeams = new List<string>();

@@ -7,7 +7,7 @@ using System.Xml.Serialization;
 
 namespace ConfidencePoolAnalyzer
 {
-    public class LiveNflData : IDisposable
+    internal class LiveNflData : IDisposable
     {
         private readonly WebClient _client;
         private readonly XmlSerializer _nflSerializer;
@@ -18,7 +18,7 @@ namespace ConfidencePoolAnalyzer
         private readonly DateTime _thisWeekEnd;
 
         private static readonly Lazy<LiveNflData> TheInstance = new Lazy<LiveNflData>(() => new LiveNflData());
-        public static LiveNflData Instance { get { return TheInstance.Value; } }
+        internal static LiveNflData Instance { get { return TheInstance.Value; } }
 
         private LiveNflData()
         {
@@ -36,7 +36,7 @@ namespace ConfidencePoolAnalyzer
             _client.Dispose();
         }
 
-        public void Scrape()
+        internal void Scrape()
         {
             //TODO: don't blindly overwrite Odds/games, so we can keep last known odds/games
             try
@@ -44,8 +44,8 @@ namespace ConfidencePoolAnalyzer
                 if (_client != null)
                 {
                     _odds = (PinnacleOdds)_oddsSerializer.Deserialize(_client.OpenRead(@"http://xml.pinnaclesports.com/pinnacleFeed.aspx?sporttype=Football&sportsubtype=NFL"));
-                    _odds.Events.RemoveAll(x => !x.IsValidNflGame);
-                    _odds.Events.RemoveAll(x => x.EventDateTime < _thisWeekStart || x.EventDateTime > _thisWeekEnd);
+                    _odds.Games.RemoveAll(x => !x.IsValidNflGame);
+                    _odds.Games.RemoveAll(x => x.EventDateTime < _thisWeekStart || x.EventDateTime > _thisWeekEnd);
                 }
             }
             catch { }
@@ -64,19 +64,17 @@ namespace ConfidencePoolAnalyzer
                 matchups.AddRange(_scoreStrip.Games.Select(x => new Matchup(x.Away, x.Home, 0.5)));
             }
 
-            if (_odds != null && _odds.Events != null)
+            if (_odds == null || _odds.Games == null) return;
+            foreach (Matchup m in _odds.Games.Select(ev => new Matchup(
+                ev.Participants.First(x => !x.IsHome).Name, 
+                ev.Participants.First(x => x.IsHome).Name, 
+                0.5)).Where(m => !matchups.Any(x => x.Away == m.Away && x.Home == m.Home)))
             {
-                foreach (Matchup m in _odds.Events.Select(ev => new Matchup(
-                    ev.Participants.First(x => !x.IsHome).Name, 
-                    ev.Participants.First(x => x.IsHome).Name, 
-                    0.5)).Where(m => !matchups.Any(x => x.Away == m.Away && x.Home == m.Home)))
-                {
-                    matchups.Add(m);
-                }
+                matchups.Add(m);
             }
         }
 
-        public void UpdateMatchup(Matchup m)
+        internal void UpdateMatchup(Matchup m)
         {
             try {
                 NflGame game = _scoreStrip.Games.First(x => x.Home.Equals(m.Home) && x.Away.Equals(m.Away));
@@ -90,7 +88,7 @@ namespace ConfidencePoolAnalyzer
             catch { }
 
             try {
-                double spread = _odds.Events.First(x => x.Participants.Any(y => y.Name.Equals(m.Home)))
+                double spread = _odds.Games.First(x => x.Participants.Any(y => y.Name.Equals(m.Home)))
                     .Periods.First(x => x.PeriodNumber == 0).Spread.SpreadHome;
                 m.Spread = spread;
             }
@@ -109,7 +107,7 @@ namespace ConfidencePoolAnalyzer
 
     public class NflGame
     {
-        [XmlAttribute("q")] 
+        [XmlAttribute("q")]
         public string Quarter { get; set; }
 
         [XmlAttribute("k")]
@@ -139,10 +137,10 @@ namespace ConfidencePoolAnalyzer
     {
         [XmlArray("events")]
         [XmlArrayItem("event")]
-        public List<Event> Events { get; set; }
+        public List<Game> Games { get; set; }
     }
 
-    public class Event
+    public class Game
     {
         [XmlElement("league")]
         public string League { get; set; }
@@ -158,7 +156,7 @@ namespace ConfidencePoolAnalyzer
         [XmlArrayItem("period")]
         public List<Period> Periods { get; set; }
 
-        public DateTime EventDateTime
+        internal DateTime EventDateTime
         {
             get
             {
@@ -166,7 +164,7 @@ namespace ConfidencePoolAnalyzer
             }
         }
 
-        public bool IsValidNflGame
+        internal bool IsValidNflGame
         {
             get
             {
@@ -191,7 +189,8 @@ namespace ConfidencePoolAnalyzer
     {
         private string _name;
         [XmlElement("participant_name")]
-        public string Name {
+        public string Name
+        {
             get { return _name; }
             set {
                 switch (value)
@@ -207,14 +206,15 @@ namespace ConfidencePoolAnalyzer
                     case "Green Bay Packers": _name = "GB"; break;
                     case "Kansas City Chiefs": _name = "KC"; break;
                     case "San Francisco 49ers": _name = "SF"; break;
-                    default: _name = value.Substring(0, 3).ToUpper(); break;
+                    default: _name = value.Substring(0, 3).ToUpper(CultureInfo.InvariantCulture); break;
                 }
             }
         }
 
         [XmlElement("visiting_home_draw")]
         public string HomeVisiting { get; set; }
-        public bool IsHome { get { return HomeVisiting == "Home"; } }   
+
+        internal bool IsHome { get { return HomeVisiting == "Home"; } }   
     }
 
     public class Period

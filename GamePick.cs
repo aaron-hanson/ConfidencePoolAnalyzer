@@ -1,11 +1,11 @@
 namespace ConfidencePoolAnalyzer
 {
-    class GamePick
+    internal class GamePick
     {
-        public string TeamAbbrev;
-        public int Points;
+        internal string TeamAbbrev;
+        internal int Points;
 
-        public GamePick(string teamAbbrev, int points)
+        internal GamePick(string teamAbbrev, int points)
         {
             TeamAbbrev = teamAbbrev;
             Points = points;

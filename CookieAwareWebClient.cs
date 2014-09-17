@@ -5,8 +5,8 @@ namespace ConfidencePoolAnalyzer
 {
     class CookieAwareWebClient : WebClient
     {
-        private CookieContainer cc = new CookieContainer();
-        private string _lastPage;
+        internal CookieContainer CookieCont = new CookieContainer();
+        internal string LastPage;
 
         protected override WebRequest GetWebRequest(Uri address)
         {
@@ -14,10 +14,10 @@ namespace ConfidencePoolAnalyzer
             HttpWebRequest wr = r as HttpWebRequest;
             if (wr != null)
             {
-                wr.CookieContainer = cc;
-                if (_lastPage != null) wr.Referer = _lastPage;
+                wr.CookieContainer = CookieCont;
+                if (LastPage != null) wr.Referer = LastPage;
             }
-            _lastPage = address.ToString();
+            LastPage = address.ToString();
             return r;
         }
 

@@ -3,61 +3,62 @@ using System.Globalization;
 
 namespace ConfidencePoolAnalyzer
 {
-    public class Matchup
+    internal class Matchup
     {
         private readonly string _away;
-        public string Away { get { return _away; } }
+        internal string Away { get { return _away; } }
 
         private readonly string _home;
-        public string Home { get { return _home; } }
+        internal string Home { get { return _home; } }
 
-        public bool IsDirty { get; set; }
-        public bool IsWinnerDirty { get; set; }
-        public bool IsWinPctDirty { get; set; }
+        internal bool IsDirty { get; set; }
+        internal bool IsWinnerDirty { get; set; }
+        internal bool IsWinPctDirty { get; set; }
 
         private string _winner;
-        public string Winner {
+        internal string Winner
+        {
             get { return _winner; }
             set { if (value != _winner) { _winner = value; IsWinnerDirty = true; } }
         }
 
         private double _homeWinPct;
-        public double HomeWinPct
+        internal double HomeWinPct
         {
             get { return _homeWinPct; }
             set { if (value != _homeWinPct) { _homeWinPct = value; IsWinPctDirty = true; } }
         }
 
         private double _spread;
-        public double Spread
+        internal double Spread
         {
             get { return _spread; }
             set { if (value != _spread) { _spread = value; IsDirty = true; } }
         }
 
         private int _homeScore;
-        public int HomeScore
+        internal int HomeScore
         {
             get { return _homeScore; }
             set { if (value != _homeScore) { _homeScore = value; IsDirty = true; } }
         }
 
         private int _awayScore;
-        public int AwayScore
+        internal int AwayScore
         {
             get { return _awayScore; }
             set { if (value != _awayScore) { _awayScore = value; IsDirty = true; } }
         }
 
         private string _possession;
-        public string Possession
+        internal string Possession
         {
             get { return _possession; }
             set { if (value != _possession) { _possession = value; IsDirty = true; } }
         }
 
         private bool _redZone;
-        public bool RedZone
+        internal bool RedZone
         {
             get { return _redZone; }
             set { if (value != _redZone) { _redZone = value; IsDirty = true; } }
@@ -65,7 +66,7 @@ namespace ConfidencePoolAnalyzer
 
         private string _quarter;
         private string _realQuarter;
-        public string Quarter
+        internal string Quarter
         {
             get { return _quarter; }
             set
@@ -80,7 +81,7 @@ namespace ConfidencePoolAnalyzer
         }
 
         private string _timeLeft;
-        public string TimeLeft
+        internal string TimeLeft
         {
             get { return _timeLeft; }
             set { if (value != _timeLeft) { _timeLeft = value; IsDirty = true; } }
@@ -97,19 +98,19 @@ namespace ConfidencePoolAnalyzer
 
                 string[] mmss = TimeLeft.Split(':');
                 if (mmss.Length != 2) return 60;
-                double minutes = double.Parse(mmss[0]);
-                double seconds = double.Parse(mmss[1]);
-                int quarter = int.Parse(_realQuarter);
+                double minutes = double.Parse(mmss[0], CultureInfo.InvariantCulture);
+                double seconds = double.Parse(mmss[1], CultureInfo.InvariantCulture);
+                int quarter = int.Parse(_realQuarter, CultureInfo.InvariantCulture);
                 return minutes + seconds / 60 + (4 - quarter) * 15;
             }
         }
 
-        public bool IsFinal
+        internal bool IsFinal
         {
             get { return Quarter == NflQuarter.Final || Quarter == NflQuarter.FinalOt; }
         }
 
-        public string GameStatus
+        internal string GameStatus
         {
             get
             {
@@ -127,7 +128,7 @@ namespace ConfidencePoolAnalyzer
             }
         }
 
-        public Matchup(string away, string home, double homeWinPct, string winner = "")
+        internal Matchup(string away, string home, double homeWinPct, string winner = "")
         {
             _away = away;
             _home = home;
@@ -144,7 +145,7 @@ namespace ConfidencePoolAnalyzer
             Recalc();
         }
 
-        public void Recalc()
+        internal void Recalc()
         {
             IsDirty = false;
             if (Winner == Home) HomeWinPct = 1;
@@ -159,29 +160,29 @@ namespace ConfidencePoolAnalyzer
 
         public override string ToString()
         {
-            return string.Format("{0} {1} {2}-{3} {4} {5} {6}",
+            return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}-{3} {4} {5} {6}",
                 GameStatus.PadRight(10),
                 (Away + (Possession == Away ? (RedZone ? "*" : ".") : " ")).PadLeft(4),
                 AwayScore.ToString(CultureInfo.InvariantCulture).PadLeft(2),
                 HomeScore.ToString(CultureInfo.InvariantCulture).PadRight(2),
                 ((Possession == Home ? (RedZone ? "*" : ".") : " ") + Home).PadRight(4),
-                Spread.ToString("+0.0;-0.0;PK ").PadLeft(5),
-                Math.Round(HomeWinPct, 4).ToString("0.00%").PadLeft(7)
+                Spread.ToString("+0.0;-0.0;PK ", CultureInfo.InvariantCulture).PadLeft(5),
+                Math.Round(HomeWinPct, 4).ToString("0.00%", CultureInfo.InvariantCulture).PadLeft(7)
                 );
         }
     }
 
-    public sealed class NflQuarter
+    internal static class NflQuarter
     {
-        public static readonly string Pregame = "P";
-        public static readonly string FirstQuarter = "1";
-        public static readonly string SecondQuarter = "2";
-        public static readonly string Halftime = "H";
-        public static readonly string ThirdQuarter = "3";
-        public static readonly string FourthQuarter = "4";
-        public static readonly string Overtime = "5";
-        public static readonly string Final = "F";
-        public static readonly string FinalOt = "FO";
-        public static readonly string Suspended = "Suspended";
+        internal const string Pregame = "P";
+        internal const string FirstQuarter = "1";
+        internal const string SecondQuarter = "2";
+        internal const string Halftime = "H";
+        internal const string ThirdQuarter = "3";
+        internal const string FourthQuarter = "4";
+        internal const string Overtime = "5";
+        internal const string Final = "F";
+        internal const string FinalOt = "FO";
+        internal const string Suspended = "Suspended";
     }
 }

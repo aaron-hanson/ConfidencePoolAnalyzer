@@ -5,25 +5,25 @@ using System.Text;
 
 namespace ConfidencePoolAnalyzer
 {
-    class PlayerEntry
+    internal class PlayerEntry
     {
-        public string Name;
-        public List<GamePick> GamePicks = new List<GamePick>();
+        internal string Name;
+        internal List<GamePick> GamePicks = new List<GamePick>();
 
-        public double LikelyScore;
-        public double MaxScore;
-        public double CurScore;
-        public double OutrightWinProb, TiedProb, WinProb, OverallWinProb;
-        public double WeightedRank;
-        public double Probability;
-        public int Bits = -1;
+        internal double LikelyScore;
+        internal double MaxScore;
+        internal double CurScore;
+        internal double OutrightWinProb, TiedProb, WinProb, OverallWinProb;
+        internal double WeightedRank;
+        internal double Probability;
+        internal int Bits = -1;
 
-        public PlayerEntry(string name)
+        internal PlayerEntry(string name)
         {
             Name = name;
         }
 
-        public PlayerEntry(string name, int bits, params object[] picks) : this(name)
+        internal PlayerEntry(string name, int bits, params object[] picks) : this(name)
         {
             Bits = bits;
             if (picks != null)
@@ -46,12 +46,12 @@ namespace ConfidencePoolAnalyzer
             }
         }
 
-        public void AddPick(string winner, int points)
+        internal void AddPick(string winner, int points)
         {
             GamePicks.Add(new GamePick(winner, points));
         }
 
-        public void SetProbability()
+        internal void SetProbability()
         {
             Probability = 1;
 
@@ -64,13 +64,13 @@ namespace ConfidencePoolAnalyzer
             }
         }
 
-        public int GetScore(WeekPossibility wp)
+        internal int GetScore(WeekPossibility wp)
         {
             IEnumerable<string> weekWinners = wp.GameWinners.Select(x => x.TeamAbbrev);
             return GamePicks.Where(x => weekWinners.Contains(x.TeamAbbrev)).Sum(x => x.Points);
         }
 
-        public void SetScoreData()
+        internal void SetScoreData()
         {
             LikelyScore = 0;
             MaxScore = 0;

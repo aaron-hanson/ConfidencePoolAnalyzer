@@ -4,13 +4,13 @@ using System.Linq;
 
 namespace ConfidencePoolAnalyzer
 {
-    class WeekPossibility
+    internal class WeekPossibility
     {
-        public List<GamePick> GameWinners;
-        public List<PlayerScore> PlayerScores;
-        public double Probability = 1;
+        internal List<GamePick> GameWinners;
+        internal List<PlayerScore> PlayerScores;
+        internal double Probability = 1;
 
-        public WeekPossibility(int bits)
+        internal WeekPossibility(int bits)
         {
             GameWinners = new List<GamePick>();
             PlayerScores = new List<PlayerScore>();
@@ -33,7 +33,7 @@ namespace ConfidencePoolAnalyzer
             RecalcProbability();
         }
 
-        public void RecalcProbability()
+        internal void RecalcProbability()
         {
             Probability = 1;
             foreach (GamePick pick in GameWinners)
@@ -45,7 +45,7 @@ namespace ConfidencePoolAnalyzer
             }
         }
 
-        public void CalcPlayerScores()
+        internal void CalcPlayerScores()
         {
             PlayerScores.Clear();
             foreach (PlayerEntry entry in ConfidencePoolAnalyzer.PlayerEntries)
@@ -60,7 +60,7 @@ namespace ConfidencePoolAnalyzer
             }
         }
 
-        public void Print()
+        internal void Print()
         {
             //Console.Write("AH=" + playerScores.Where(x => x.name.Equals("Aaron Hanson")).First().rank + " TM=" + playerScores.Where(x => x.name.Equals("Teresa Mendoz")).First().rank + " ");
             Console.Write("(" + Math.Round(100 * Probability, 3) + "): ");

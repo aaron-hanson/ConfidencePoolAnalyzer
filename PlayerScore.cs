@@ -1,13 +1,13 @@
 namespace ConfidencePoolAnalyzer
 {
-    class PlayerScore
+    internal class PlayerScore
     {
-        public string Name;
-        public int Score;
-        public int Rank;
-        public double WeightedRank;
+        internal string Name;
+        internal int Score;
+        internal int Rank;
+        internal double WeightedRank;
 
-        public PlayerScore(string name, int score)
+        internal PlayerScore(string name, int score)
         {
             Name = name;
             Score = score;
