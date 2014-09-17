@@ -16,6 +16,7 @@ namespace ConfidencePoolAnalyzer
         private NflScoreStrip _scoreStrip;
         private readonly DateTime _thisWeekStart;
         private readonly DateTime _thisWeekEnd;
+        private DateTime _nextOddsScrapeTime;
 
         private static readonly Lazy<LiveNflData> TheInstance = new Lazy<LiveNflData>(() => new LiveNflData());
         internal static LiveNflData Instance { get { return TheInstance.Value; } }
@@ -29,6 +30,8 @@ namespace ConfidencePoolAnalyzer
             DateTime now = DateTime.Now.Date;
             _thisWeekEnd = now.AddDays((((int)DayOfWeek.Tuesday - (int)now.DayOfWeek + 7) % 7) + 1);
             _thisWeekStart = _thisWeekEnd.AddDays(-7);
+
+            _nextOddsScrapeTime = DateTime.Now;
         }
 
         public void Dispose()
@@ -39,20 +42,31 @@ namespace ConfidencePoolAnalyzer
         internal void Scrape()
         {
             //TODO: don't blindly overwrite Odds/games, so we can keep last known odds/games
+            if (DateTime.Now >= _nextOddsScrapeTime)
+            {
+                _nextOddsScrapeTime = DateTime.Now.AddMinutes(1);
+                try
+                {
+                    if (_client != null)
+                    {
+                        Console.Write("Scraping Pinnacle Odds...");
+                        _odds = (PinnacleOdds)_oddsSerializer.Deserialize(_client.OpenRead(@"http://xml.pinnaclesports.com/pinnacleFeed.aspx?sporttype=Football&sportsubtype=NFL"));
+                        _odds.Games.RemoveAll(x => !x.IsValidNflGame);
+                        _odds.Games.RemoveAll(x => x.EventDateTime < _thisWeekStart || x.EventDateTime > _thisWeekEnd);
+                        Console.WriteLine(_odds.Games.Count);
+                    }
+                }
+                catch { }
+            }
+
             try
             {
                 if (_client != null)
                 {
-                    _odds = (PinnacleOdds)_oddsSerializer.Deserialize(_client.OpenRead(@"http://xml.pinnaclesports.com/pinnacleFeed.aspx?sporttype=Football&sportsubtype=NFL"));
-                    _odds.Games.RemoveAll(x => !x.IsValidNflGame);
-                    _odds.Games.RemoveAll(x => x.EventDateTime < _thisWeekStart || x.EventDateTime > _thisWeekEnd);
-                }
-            }
-            catch { }
-            try
-            {
-                if (_client != null)
+                    Console.Write("Scraping NFL Games...");
                     _scoreStrip = (NflScoreStrip)_nflSerializer.Deserialize(_client.OpenRead(@"http://www.nfl.com/liveupdate/scorestrip/ss.xml"));
+                    Console.WriteLine(_scoreStrip.Games.Count);
+                }
             }
             catch { }
         }

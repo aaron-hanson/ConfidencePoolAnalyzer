@@ -132,8 +132,8 @@ namespace ConfidencePoolAnalyzer
         {
             _away = away;
             _home = home;
-            HomeWinPct = homeWinPct;
-            Winner = winner;
+            _homeWinPct = homeWinPct;
+            _winner = winner;
             Spread = 0;
             HomeScore = 0;
             AwayScore = 0;

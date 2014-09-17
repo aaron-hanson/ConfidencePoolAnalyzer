@@ -61,7 +61,6 @@ namespace ConfidencePoolAnalyzer
 
             TryScrapePoolEntries();
             AddRandomEntries(0);
-
             ValidateLists();
             BuildWeekPossibilities();
         }
@@ -102,12 +101,14 @@ namespace ConfidencePoolAnalyzer
 
                     if (Matchups.Any(x => x.IsWinnerDirty))
                     {
+                        Console.WriteLine("Dirty winners: " + string.Join(" ", Matchups.Where(x => x.IsWinnerDirty).Select(x => x.Home)));
                         BuildWeekPossibilities();
                         Matchups.ForEach(x => x.IsWinnerDirty = false);
                         CalculateOutcomes();
                     }
                     else if (Matchups.Any(x => x.IsWinPctDirty))
                     {
+                        Console.WriteLine("Dirty win pcts: " + string.Join(" ", Matchups.Where(x => x.IsWinPctDirty).Select(x => x.Home)));
                         Possibilities.ForEach(x => x.RecalcProbability());
                         Matchups.ForEach(x => x.IsWinPctDirty = false);
                         CalculateOutcomes();
@@ -142,6 +143,7 @@ namespace ConfidencePoolAnalyzer
                         UploadLatestToAltdex(buf.ToString());
                     }
                 }
+                else Console.WriteLine("No changes.");
 
                 while (DateTime.Now < _nextScrapeTime) Thread.Sleep(1000);
                 _nextScrapeTime = DateTime.Now.AddMilliseconds(_liveUpdatePollDelay);
