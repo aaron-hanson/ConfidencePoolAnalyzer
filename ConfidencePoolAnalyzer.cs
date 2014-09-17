@@ -19,8 +19,10 @@ namespace ConfidencePoolAnalyzer
         internal static List<Matchup> Matchups = new List<Matchup>();
         internal static List<PlayerEntry> PlayerEntries = new List<PlayerEntry>();
         internal static List<WeekPossibility> Possibilities = new List<WeekPossibility>();
+        internal static bool PlayerEntriesKnown = false;
         
-        private readonly int _liveUpdatePollDelay;
+        private readonly int _livePollSeconds;
+        private readonly int _poolPollMinutes;
         private readonly bool _doUpload;
         private readonly bool _forceUpdates;
         private DateTime _nextScrapeTime;
@@ -33,7 +35,8 @@ namespace ConfidencePoolAnalyzer
         {
             _doUpload = "true".Equals(ConfigurationManager.AppSettings["DoUpload"], StringComparison.OrdinalIgnoreCase);
             _forceUpdates = "true".Equals(ConfigurationManager.AppSettings["ForceUpdates"], StringComparison.OrdinalIgnoreCase);
-            _liveUpdatePollDelay = int.TryParse(ConfigurationManager.AppSettings["LiveUpdatePollDelayMillis"], out _liveUpdatePollDelay) ? _liveUpdatePollDelay : 20000;
+            _livePollSeconds = int.TryParse(ConfigurationManager.AppSettings["LivePollSeconds"], out _livePollSeconds) ? _livePollSeconds : 20;
+            _poolPollMinutes = int.TryParse(ConfigurationManager.AppSettings["PoolPollMinutes"], out _poolPollMinutes) ? _poolPollMinutes : 30;
             if (ConfigurationManager.AppSettings["EntryWinCheck"] != null && ConfigurationManager.AppSettings["EntryWinCheck"].Length > 0)
                 _entryWinCheck.AddRange(ConfigurationManager.AppSettings["EntryWinCheck"].Split(','));
 
@@ -47,7 +50,7 @@ namespace ConfidencePoolAnalyzer
             _cbsPass = config.AppSettings.Settings["cbspass"].Value;
 
             LiveNflData.Instance.Scrape();
-            _nextScrapeTime = DateTime.Now.AddMilliseconds(_liveUpdatePollDelay);
+            _nextScrapeTime = DateTime.Now.AddSeconds(_livePollSeconds);
             LiveNflData.Instance.BuildMatchups(Matchups);
 
             // temp fix for week 2 matchups that are final
@@ -62,8 +65,8 @@ namespace ConfidencePoolAnalyzer
             }
 
             DateTime now = DateTime.Now;
-            _nextPoolScrapeTime = now.AddHours(1);
-            _poolScrapeTime = new DateTime(now.Year, now.Month, now.Day, 19, 30, 0);
+            _nextPoolScrapeTime = now.AddMinutes(30);
+            _poolScrapeTime = new DateTime(now.Year, now.Month, now.Day, 19, 25, 0);
             while (_poolScrapeTime.DayOfWeek != DayOfWeek.Thursday) _poolScrapeTime += TimeSpan.FromDays(1);
 
             TryScrapePoolEntries();
@@ -160,7 +163,7 @@ namespace ConfidencePoolAnalyzer
                 else Console.WriteLine("No changes.");
 
                 while (DateTime.Now < _nextScrapeTime) Thread.Sleep(1000);
-                _nextScrapeTime = DateTime.Now.AddMilliseconds(_liveUpdatePollDelay);
+                _nextScrapeTime += TimeSpan.FromSeconds(_livePollSeconds);
                 LiveNflData.Instance.Scrape();
 
                 DateTime now = DateTime.Now;
@@ -171,13 +174,14 @@ namespace ConfidencePoolAnalyzer
                 }
                 poolEntriesDirty = true;
                 TryScrapePoolEntries();
-                _nextPoolScrapeTime += TimeSpan.FromHours(1);
+                _nextPoolScrapeTime += TimeSpan.FromMinutes(_poolPollMinutes);
                 if (DateTime.Now - _poolScrapeTime > TimeSpan.FromMinutes(5)) _poolScrapeTime += TimeSpan.FromDays(7);
             }
         }
 
         internal void TryScrapePoolEntries()
         {
+            bool entriesKnown = true;
             Console.Write("Scraping CBS entries...");
             using (CookieAwareWebClient wc = new CookieAwareWebClient())
             {
@@ -219,9 +223,11 @@ namespace ConfidencePoolAnalyzer
                         entry.AddPick(winner, points);
                     }
                     PlayerEntries.Add(entry);
+                    if (!entry.GamePicks.Any()) entriesKnown = false;
                 }
                 Console.WriteLine(PlayerEntries.Count);
             }
+            PlayerEntriesKnown = entriesKnown;
         }
 
         internal void UploadLatestToAltdex(string contents)
@@ -276,18 +282,23 @@ namespace ConfidencePoolAnalyzer
             buf.AppendLine("-------------------------------------------------------------------------------");
             foreach (PlayerEntry entry in PlayerEntries.OrderByDescending(x => x.WinProb).ThenBy(x => x.WeightedRank))
             {
-                int wins = Possibilities.Count(x => x.PlayerScores.Count(y => y.Name.Equals(entry.Name) && y.Rank == 1) == 1);
-                double pct = (double) wins*100/Possibilities.Count();
-                buf.AppendLine(String.Format(CultureInfo.InvariantCulture, "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}", 
-                    entry.Name.PadRight(13), 
-                    Math.Round(100*entry.OverallWinProb, 3),
-                    Math.Round(100*entry.OutrightWinProb, 3), 
-                    Math.Round(100*entry.TiedProb, 3),
-                    Math.Round(pct, 2), 
-                    Math.Round(entry.LikelyScore), 
-                    entry.MaxScore, 
-                    entry.CurScore, 
-                    Math.Round(entry.WeightedRank, 2)));
+                if (PlayerEntriesKnown)
+                {
+                    int wins = Possibilities.Count(x => x.PlayerScores.Count(y => y.Name.Equals(entry.Name) && y.Rank == 1) == 1);
+                    double pct = (double) wins*100/Possibilities.Count();
+                    buf.AppendLine(String.Format(CultureInfo.InvariantCulture,
+                        "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}",
+                        entry.Name.PadRight(13),
+                        Math.Round(100*entry.OverallWinProb, 3),
+                        Math.Round(100*entry.OutrightWinProb, 3),
+                        Math.Round(100*entry.TiedProb, 3),
+                        Math.Round(pct, 2),
+                        Math.Round(entry.LikelyScore),
+                        entry.MaxScore,
+                        entry.CurScore,
+                        Math.Round(entry.WeightedRank, 2)));
+                }
+                else buf.AppendLine(String.Format(CultureInfo.InvariantCulture, "{0}\t?\t?\t?\t?\t?\t?\t?\t?", entry.Name.PadRight(13)));
             }
             buf.AppendLine();
             return buf.ToString();
@@ -377,6 +388,7 @@ namespace ConfidencePoolAnalyzer
 
         internal static void CalculateOutcomes()
         {
+            if (!PlayerEntriesKnown) return;
             // now calc entry scores and whatnot
             Possibilities.ForEach(x => x.CalcPlayerScores());
             PlayerEntries.ForEach(x => x.SetScoreData());

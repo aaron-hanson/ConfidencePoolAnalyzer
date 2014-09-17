@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -17,6 +18,7 @@ namespace ConfidencePoolAnalyzer
         private readonly DateTime _thisWeekStart;
         private readonly DateTime _thisWeekEnd;
         private DateTime _nextOddsScrapeTime;
+        private readonly int _oddsPollSeconds;
 
         private static readonly Lazy<LiveNflData> TheInstance = new Lazy<LiveNflData>(() => new LiveNflData());
         internal static LiveNflData Instance { get { return TheInstance.Value; } }
@@ -32,6 +34,7 @@ namespace ConfidencePoolAnalyzer
             _thisWeekEnd = now.AddDays((((int)DayOfWeek.Tuesday - (int)now.DayOfWeek + 7) % 7) + 1);
             _thisWeekStart = _thisWeekEnd.AddDays(-7);
 
+            _oddsPollSeconds = int.TryParse(ConfigurationManager.AppSettings["OddsPollSeconds"], out _oddsPollSeconds) ? _oddsPollSeconds : 60;
             _nextOddsScrapeTime = DateTime.Now;
         }
 
@@ -45,7 +48,7 @@ namespace ConfidencePoolAnalyzer
             //TODO: don't blindly overwrite Odds/games, so we can keep last known odds/games
             if (DateTime.Now >= _nextOddsScrapeTime)
             {
-                _nextOddsScrapeTime = DateTime.Now.AddMinutes(1);
+                _nextOddsScrapeTime += TimeSpan.FromSeconds(_oddsPollSeconds);
                 try
                 {
                     if (_client != null)
