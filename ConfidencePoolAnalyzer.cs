@@ -22,12 +22,12 @@ namespace ConfidencePoolAnalyzer
         internal static bool PlayerEntriesKnown = false;
         
         private readonly int _livePollSeconds;
-        private readonly int _poolPollMinutes;
         private readonly bool _doUpload;
         private readonly bool _forceUpdates;
         private DateTime _nextScrapeTime;
-        private DateTime _poolScrapeTime;
         private DateTime _nextPoolScrapeTime;
+        private DateTime _poolScrapeTimeFinal;
+        private DateTime _poolScrapeStart;
         private readonly string _ftpHost, _ftpUser, _ftpPass, _cbsUser, _cbsPass;
         private readonly List<string> _entryWinCheck = new List<string>();
 
@@ -36,7 +36,6 @@ namespace ConfidencePoolAnalyzer
             _doUpload = "true".Equals(ConfigurationManager.AppSettings["DoUpload"], StringComparison.OrdinalIgnoreCase);
             _forceUpdates = "true".Equals(ConfigurationManager.AppSettings["ForceUpdates"], StringComparison.OrdinalIgnoreCase);
             _livePollSeconds = int.TryParse(ConfigurationManager.AppSettings["LivePollSeconds"], out _livePollSeconds) ? _livePollSeconds : 20;
-            _poolPollMinutes = int.TryParse(ConfigurationManager.AppSettings["PoolPollMinutes"], out _poolPollMinutes) ? _poolPollMinutes : 30;
             if (ConfigurationManager.AppSettings["EntryWinCheck"] != null && ConfigurationManager.AppSettings["EntryWinCheck"].Length > 0)
                 _entryWinCheck.AddRange(ConfigurationManager.AppSettings["EntryWinCheck"].Split(','));
 
@@ -65,9 +64,10 @@ namespace ConfidencePoolAnalyzer
             }
 
             DateTime now = DateTime.Now;
+            _poolScrapeTimeFinal = new DateTime(now.Year, now.Month, now.Day, 19, 20, 0);
+            while (_poolScrapeTimeFinal.DayOfWeek != DayOfWeek.Thursday) _poolScrapeTimeFinal += TimeSpan.FromDays(1);
+            _poolScrapeStart = new DateTime(_poolScrapeTimeFinal.Year, _poolScrapeTimeFinal.Month, _poolScrapeTimeFinal.Day, 12, 0, 0).AddDays(-1);
             _nextPoolScrapeTime = now.AddMinutes(30);
-            _poolScrapeTime = new DateTime(now.Year, now.Month, now.Day, 19, 20, 0);
-            while (_poolScrapeTime.DayOfWeek != DayOfWeek.Thursday) _poolScrapeTime += TimeSpan.FromDays(1);
 
             TryScrapePoolEntries();
             AddRandomEntries(0);
@@ -167,15 +167,19 @@ namespace ConfidencePoolAnalyzer
                 LiveNflData.Instance.Scrape();
 
                 DateTime now = DateTime.Now;
-                if (now < _nextPoolScrapeTime && now < _poolScrapeTime)
+                if (now < _poolScrapeStart || now < _nextPoolScrapeTime)
                 {
                     poolEntriesDirty = false;
                     continue;
                 }
                 poolEntriesDirty = true;
                 TryScrapePoolEntries();
-                _nextPoolScrapeTime += TimeSpan.FromMinutes(_poolPollMinutes);
-                if (DateTime.Now - _poolScrapeTime > TimeSpan.FromMinutes(5)) _poolScrapeTime += TimeSpan.FromDays(7);
+                _nextPoolScrapeTime += TimeSpan.FromMinutes(30);
+                if (DateTime.Now - _poolScrapeTimeFinal > TimeSpan.FromMinutes(5))
+                {
+                    _poolScrapeTimeFinal += TimeSpan.FromDays(7);
+                    _poolScrapeStart += TimeSpan.FromDays(7);
+                }
             }
         }
 
