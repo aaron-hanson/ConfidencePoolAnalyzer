@@ -296,9 +296,9 @@ namespace ConfidencePoolAnalyzer
             }
             finally
             {
-                if (reqStream != null) reqStream.Dispose();
-                if (resp != null) resp.Dispose();
-                if (renameResp != null) renameResp.Dispose();
+                if (reqStream != null) try { reqStream.Dispose(); } catch { }
+                if (resp != null) try { resp.Dispose(); } catch { }
+                if (renameResp != null) try { renameResp.Dispose(); } catch { }
             }
         }
 
