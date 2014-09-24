@@ -287,8 +287,11 @@ namespace ConfidencePoolAnalyzer
                 byte[] bytes = Encoding.UTF8.GetBytes(contents);
                 reqStream = req.GetRequestStream();
                 reqStream.Write(bytes, 0, bytes.Length);
+                reqStream.Dispose();
+                resp.Close();
 
                 renameResp = (FtpWebResponse)renameReq.GetResponse();
+                renameResp.Close();
             }
             catch (Exception ex)
             {
