@@ -96,89 +96,96 @@ namespace ConfidencePoolAnalyzer
             StringBuilder buf = new StringBuilder();
             while (true)
             {
-                buf.Clear();
-
-                Matchups.ForEach(LiveNflData.Instance.UpdateMatchup);
-                if (_forceUpdates || _poolEntriesDirty || Matchups.Any(x => x.IsDirty))
+                try
                 {
-                    buf.AppendLine("UPDATED: " + DateTime.Now);
-                    buf.AppendLine();
+                    buf.Clear();
 
-                    Matchups.Where(x => x.IsDirty).ToList().ForEach(x => x.Recalc());
-
-                    buf.AppendLine("STATUS     AWAY SCORE HOME  LINE HOMEWIN%");
-                    buf.AppendLine("-----------------------------------------");
-                    Matchups.ForEach(x => buf.AppendLine(x.ToString()));
-                    buf.AppendLine();
-
-                    if (Matchups.Any(x => x.IsWinnerDirty))
+                    Matchups.ForEach(LiveNflData.Instance.UpdateMatchup);
+                    if (_forceUpdates || _poolEntriesDirty || Matchups.Any(x => x.IsDirty))
                     {
-                        Console.WriteLine("Dirty winners: " + string.Join(" ", Matchups.Where(x => x.IsWinnerDirty).Select(x => x.Home)));
-                        BuildWeekPossibilities();
-                        Matchups.ForEach(x => x.IsWinnerDirty = false);
-                        CalculateOutcomes();
+                        buf.AppendLine("UPDATED: " + DateTime.Now);
+                        buf.AppendLine();
+
+                        Matchups.Where(x => x.IsDirty).ToList().ForEach(x => x.Recalc());
+
+                        buf.AppendLine("STATUS     AWAY SCORE HOME  LINE HOMEWIN%");
+                        buf.AppendLine("-----------------------------------------");
+                        Matchups.ForEach(x => buf.AppendLine(x.ToString()));
+                        buf.AppendLine();
+
+                        if (Matchups.Any(x => x.IsWinnerDirty))
+                        {
+                            Console.WriteLine("Dirty winners: " + string.Join(" ", Matchups.Where(x => x.IsWinnerDirty).Select(x => x.Home)));
+                            BuildWeekPossibilities();
+                            Matchups.ForEach(x => x.IsWinnerDirty = false);
+                            CalculateOutcomes();
+                        }
+                        else if (Matchups.Any(x => x.IsWinPctDirty))
+                        {
+                            Console.WriteLine("Dirty win pcts: " + string.Join(" ", Matchups.Where(x => x.IsWinPctDirty).Select(x => x.Home)));
+                            Possibilities.ForEach(x => x.RecalcProbability());
+                            Matchups.ForEach(x => x.IsWinPctDirty = false);
+                            CalculateOutcomes();
+                        }
+                        else if (_poolEntriesDirty)
+                        {
+                            Console.WriteLine("Pool entries dirty.");
+                            CalculateOutcomes();
+                        }
+
+                        buf.Append(GetTable());
+                        Console.Write(buf.ToString());
+
+                        if (_doUpload)
+                        {
+                            buf.Insert(0,
+                                @"<!DOCTYPE html><html><head><title>STATS Conf Pool LIVE!</title><meta http-equiv=""refresh"" content=""20""/>" +
+                                @"<meta name=""HandheldFriendly"" content=""True"" />" +
+                                @"<meta name=""MobileOptimized"" content=""320"" />" +
+                                @"<meta name=""viewport"" content=""width=device-width, initial-scale=1"" />" +
+                                @"<meta name=""viewport"" content=""initial-scale=1"" media=""(device-height: 568px)"" />" +
+                                @"<meta http-equiv=""cleartype"" content=""on"" />" +
+                                @"</head><body><pre>" + Environment.NewLine);
+                            buf.AppendLine("LEGEND:");
+                            buf.AppendLine("   OVERALL WIN%:  The probability of winning the pool either outright or tied");
+                            buf.AppendLine("                  with others (tied scenario's chances are divided equally");
+                            buf.AppendLine("                  between all players tied).");
+                            buf.AppendLine("      SOLO WIN%:  The probability of winning the pool outright, with no ties.");
+                            buf.AppendLine("      TIED WIN%:  The probability of tying for the win with other players.");
+                            buf.AppendLine("          TREE%:  The probability of winning the pool outright or tied, if all");
+                            buf.AppendLine("                  unfinished games were coin flips (50/50 chance).");
+                            buf.AppendLine("    AVG. POINTS:  The average number of points expected for this player.");
+                            buf.AppendLine("     MAX POINTS:  The maximum possible number of points for this player.");
+                            buf.AppendLine(" CURRENT POINTS:  The current number of points for this player.");
+                            buf.AppendLine("      AVG. RANK:  The average finishing place expected for this player.");
+                            buf.Append(Environment.NewLine + @"</pre></body></html>");
+                            UploadLatestToAltdex(buf.ToString());
+                        }
                     }
-                    else if (Matchups.Any(x => x.IsWinPctDirty))
+                    else Console.WriteLine("No changes.");
+
+                    while (DateTime.Now < _nextScrapeTime) Thread.Sleep(1000);
+                    _nextScrapeTime += TimeSpan.FromSeconds(_livePollSeconds);
+                    LiveNflData.Instance.Scrape();
+
+                    DateTime now = DateTime.Now;
+                    if (now < _poolScrapeStart || now < _nextPoolScrapeTime)
                     {
-                        Console.WriteLine("Dirty win pcts: " + string.Join(" ", Matchups.Where(x => x.IsWinPctDirty).Select(x => x.Home)));
-                        Possibilities.ForEach(x => x.RecalcProbability());
-                        Matchups.ForEach(x => x.IsWinPctDirty = false);
-                        CalculateOutcomes();
-                    }
-                    else if (_poolEntriesDirty)
-                    {
-                        Console.WriteLine("Pool entries dirty.");
-                        CalculateOutcomes();
+                        _poolEntriesDirty = false;
+                        continue;
                     }
 
-                    buf.Append(GetTable());
-                    Console.Write(buf.ToString());
-
-                    if (_doUpload)
+                    TryScrapePoolEntries();
+                    _nextPoolScrapeTime += TimeSpan.FromMinutes(30);
+                    if (DateTime.Now - _poolScrapeTimeFinal > TimeSpan.FromMinutes(5))
                     {
-                        buf.Insert(0,
-                            @"<!DOCTYPE html><html><head><title>STATS Conf Pool LIVE!</title><meta http-equiv=""refresh"" content=""20""/>" +
-                            @"<meta name=""HandheldFriendly"" content=""True"" />" +
-                            @"<meta name=""MobileOptimized"" content=""320"" />" +
-                            @"<meta name=""viewport"" content=""width=device-width, initial-scale=1"" />" +
-                            @"<meta name=""viewport"" content=""initial-scale=1"" media=""(device-height: 568px)"" />" +
-                            @"<meta http-equiv=""cleartype"" content=""on"" />" +
-                            @"</head><body><pre>" + Environment.NewLine);
-                        buf.AppendLine("LEGEND:");
-                        buf.AppendLine("   OVERALL WIN%:  The probability of winning the pool either outright or tied");
-                        buf.AppendLine("                  with others (tied scenario's chances are divided equally");
-                        buf.AppendLine("                  between all players tied).");
-                        buf.AppendLine("      SOLO WIN%:  The probability of winning the pool outright, with no ties.");
-                        buf.AppendLine("      TIED WIN%:  The probability of tying for the win with other players.");
-                        buf.AppendLine("          TREE%:  The probability of winning the pool outright or tied, if all");
-                        buf.AppendLine("                  unfinished games were coin flips (50/50 chance).");
-                        buf.AppendLine("    AVG. POINTS:  The average number of points expected for this player.");
-                        buf.AppendLine("     MAX POINTS:  The maximum possible number of points for this player.");
-                        buf.AppendLine(" CURRENT POINTS:  The current number of points for this player.");
-                        buf.AppendLine("      AVG. RANK:  The average finishing place expected for this player.");
-                        buf.Append(Environment.NewLine + @"</pre></body></html>");
-                        UploadLatestToAltdex(buf.ToString());
+                        _poolScrapeTimeFinal += TimeSpan.FromDays(7);
+                        _poolScrapeStart += TimeSpan.FromDays(7);
                     }
                 }
-                else Console.WriteLine("No changes.");
-
-                while (DateTime.Now < _nextScrapeTime) Thread.Sleep(1000);
-                _nextScrapeTime += TimeSpan.FromSeconds(_livePollSeconds);
-                LiveNflData.Instance.Scrape();
-
-                DateTime now = DateTime.Now;
-                if (now < _poolScrapeStart || now < _nextPoolScrapeTime)
+                catch (Exception ex)
                 {
-                    _poolEntriesDirty = false;
-                    continue;
-                }
-
-                TryScrapePoolEntries();
-                _nextPoolScrapeTime += TimeSpan.FromMinutes(30);
-                if (DateTime.Now - _poolScrapeTimeFinal > TimeSpan.FromMinutes(5))
-                {
-                    _poolScrapeTimeFinal += TimeSpan.FromDays(7);
-                    _poolScrapeStart += TimeSpan.FromDays(7);
+                    Console.WriteLine(ex);
                 }
             }
         }
@@ -237,7 +244,10 @@ namespace ConfidencePoolAnalyzer
                 }
                 PlayerEntries = newEntries;
             }
-            catch { }
+            catch (Exception ex) 
+            {
+                Console.WriteLine(ex);
+            }
             finally
             {
                 _playerEntriesKnown = entriesKnown;
@@ -246,36 +256,50 @@ namespace ConfidencePoolAnalyzer
 
         internal void UploadLatestToAltdex(string contents)
         {
-            ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
+            FtpWebResponse resp = null;
+            Stream reqStream = null;
+            FtpWebResponse renameResp = null;
 
-            string reqUri = String.Format(CultureInfo.InvariantCulture, "ftp://{0}/files/new.html", _ftpHost);
-            NetworkCredential creds = new NetworkCredential(_ftpUser, _ftpPass);
-            X509Certificate cert = new X509Certificate("ftp.cert");
-            X509Certificate2Collection certColl = new X509Certificate2Collection { cert };
+            try
+            {
+                ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
 
-            FtpWebRequest req = (FtpWebRequest)WebRequest.Create(reqUri);
-            req.Credentials = creds;
-            req.EnableSsl = true;
-            req.ClientCertificates = certColl;
-            req.ContentLength = contents.Length;
-            req.Method = WebRequestMethods.Ftp.UploadFile;
+                string reqUri = String.Format(CultureInfo.InvariantCulture, "ftp://{0}/files/new.html", _ftpHost);
+                NetworkCredential creds = new NetworkCredential(_ftpUser, _ftpPass);
+                X509Certificate cert = new X509Certificate("ftp.cert");
+                X509Certificate2Collection certColl = new X509Certificate2Collection { cert };
 
-            FtpWebRequest renameReq = (FtpWebRequest)WebRequest.Create(reqUri);
-            renameReq.Credentials = creds;
-            renameReq.EnableSsl = true;
-            renameReq.ClientCertificates = certColl;
-            renameReq.Method = WebRequestMethods.Ftp.Rename;
-            renameReq.RenameTo = "index.html";
+                FtpWebRequest req = (FtpWebRequest)WebRequest.Create(reqUri);
+                req.Credentials = creds;
+                req.EnableSsl = true;
+                req.ClientCertificates = certColl;
+                req.ContentLength = contents.Length;
+                req.Method = WebRequestMethods.Ftp.UploadFile;
 
-            FtpWebResponse resp = (FtpWebResponse)req.GetResponse();
-            byte[] bytes = Encoding.UTF8.GetBytes(contents);
-            Stream reqStream = req.GetRequestStream();
-            reqStream.Write(bytes, 0, bytes.Length);
-            reqStream.Close();
-            resp.Close();
+                FtpWebRequest renameReq = (FtpWebRequest)WebRequest.Create(reqUri);
+                renameReq.Credentials = creds;
+                renameReq.EnableSsl = true;
+                renameReq.ClientCertificates = certColl;
+                renameReq.Method = WebRequestMethods.Ftp.Rename;
+                renameReq.RenameTo = "index.html";
 
-            FtpWebResponse renameResp = (FtpWebResponse)renameReq.GetResponse();
-            renameResp.Close();
+                resp = (FtpWebResponse)req.GetResponse();
+                byte[] bytes = Encoding.UTF8.GetBytes(contents);
+                reqStream = req.GetRequestStream();
+                reqStream.Write(bytes, 0, bytes.Length);
+
+                renameResp = (FtpWebResponse)renameReq.GetResponse();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+            finally
+            {
+                if (reqStream != null) reqStream.Dispose();
+                if (resp != null) resp.Dispose();
+                if (renameResp != null) renameResp.Dispose();
+            }
         }
 
         internal static void PrintWinningWeekPossibilities()
