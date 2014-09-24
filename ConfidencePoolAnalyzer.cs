@@ -67,7 +67,7 @@ namespace ConfidencePoolAnalyzer
             DateTime now = DateTime.Now;
             _poolScrapeTimeFinal = new DateTime(now.Year, now.Month, now.Day, 19, 20, 0);
             while (_poolScrapeTimeFinal.DayOfWeek != DayOfWeek.Thursday) _poolScrapeTimeFinal += TimeSpan.FromDays(1);
-            _poolScrapeStart = new DateTime(_poolScrapeTimeFinal.Year, _poolScrapeTimeFinal.Month, _poolScrapeTimeFinal.Day, 12, 0, 0).AddDays(-1);
+            _poolScrapeStart = new DateTime(_poolScrapeTimeFinal.Year, _poolScrapeTimeFinal.Month, _poolScrapeTimeFinal.Day, 8, 0, 0).AddDays(-1);
             _nextPoolScrapeTime = now.AddMinutes(30);
 
             TryScrapePoolEntries();
