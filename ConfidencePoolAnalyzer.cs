@@ -169,7 +169,7 @@ namespace ConfidencePoolAnalyzer
                     LiveNflData.Instance.Scrape();
 
                     DateTime now = DateTime.Now;
-                    if (now < _poolScrapeStart || now < _nextPoolScrapeTime)
+                    if (now < _poolScrapeTimeFinal && (now < _poolScrapeStart || now < _nextPoolScrapeTime))
                     {
                         _poolEntriesDirty = false;
                         continue;
