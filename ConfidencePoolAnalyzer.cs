@@ -321,7 +321,7 @@ namespace ConfidencePoolAnalyzer
             buf.AppendLine("\t\tOVERALL\tSOLO\tTIED\t\tAVG.\tMAX\tCURRENT\tAVG.");
             buf.AppendLine("ENTRY NAME\tWIN%\tWIN%\tWIN%\tTREE%\tPOINTS\tPOINTS\tPOINTS\tRANK");
             buf.AppendLine("-------------------------------------------------------------------------------");
-            foreach (PlayerEntry entry in PlayerEntries.OrderByDescending(x => x.WinProb).ThenBy(x => x.WeightedRank).ThenBy(x => x.Name))
+            foreach (PlayerEntry entry in PlayerEntries.OrderByDescending(x => x.WinProb).ThenByDescending(x => x.LikelyScore).ThenBy(x => x.Name))
             {
                 if (_playerEntriesKnown)
                 {
@@ -330,19 +330,27 @@ namespace ConfidencePoolAnalyzer
                     buf.AppendLine(String.Format(CultureInfo.InvariantCulture,
                         "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}",
                         entry.Name.PadRight(13),
-                        Math.Round(100*entry.OverallWinProb, 3),
-                        Math.Round(100*entry.OutrightWinProb, 3),
-                        Math.Round(100*entry.TiedProb, 3),
-                        Math.Round(pct, 2),
-                        Math.Round(entry.LikelyScore),
-                        entry.MaxScore,
-                        entry.CurScore,
-                        Math.Round(entry.WeightedRank, 2)));
+                        SmartRound(100*entry.OverallWinProb, 2).PadLeft(7),
+                        SmartRound(100 * entry.OutrightWinProb, 2).PadLeft(7),
+                        SmartRound(100 * entry.TiedProb, 2).PadLeft(7),
+                        SmartRound(pct, 1).PadLeft(6),
+                        SmartRound(entry.LikelyScore, 0).PadLeft(3),
+                        entry.MaxScore.ToString(CultureInfo.InvariantCulture).PadLeft(3),
+                        entry.CurScore.ToString(CultureInfo.InvariantCulture).PadLeft(3),
+                        SmartRound(entry.WeightedRank, 1).PadLeft(4)));
                 }
                 else buf.AppendLine(String.Format(CultureInfo.InvariantCulture, "{0}\t?\t?\t?\t?\t?\t?\t?\t?", entry.Name.PadRight(13)));
             }
             buf.AppendLine();
             return buf.ToString();
+        }
+
+        internal static string SmartRound(double value, int digits)
+        {
+            string digitFormat = "0" + (digits > 0 ? "." + new string('0', digits) : "");
+            double rounded = Math.Round(value, digits);
+            if ((value > 0 && rounded == 0) || (value < 100 && rounded == 100)) return "~" + rounded.ToString(digitFormat, CultureInfo.InvariantCulture);
+            return rounded.ToString(digitFormat, CultureInfo.InvariantCulture);
         }
 
         internal void PrintGameChangers()
@@ -352,12 +360,12 @@ namespace ConfidencePoolAnalyzer
                 m.Winner = m.Away;
                 BuildWeekPossibilities();
                 CalculateOutcomes();
-                Console.WriteLine(m.Winner + ": " + Math.Round(100 * GetOverallWinProbability(), 3) + "%");
+                Console.WriteLine(m.Winner + ": " + SmartRound(100 * GetOverallWinProbability(), 3) + "%");
 
                 m.Winner = m.Home;
                 BuildWeekPossibilities();
                 CalculateOutcomes();
-                Console.WriteLine(m.Winner + ": " + Math.Round(100 * GetOverallWinProbability(), 3) + "%");
+                Console.WriteLine(m.Winner + ": " + SmartRound(100 * GetOverallWinProbability(), 3) + "%");
 
                 Console.WriteLine();
                 m.Winner = "";

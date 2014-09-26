@@ -167,7 +167,7 @@ namespace ConfidencePoolAnalyzer
                 HomeScore.ToString(CultureInfo.InvariantCulture).PadRight(2),
                 ((Possession == Home ? (RedZone ? "*" : ".") : " ") + Home).PadRight(4),
                 Spread.ToString("+0.0;-0.0;PK ", CultureInfo.InvariantCulture).PadLeft(5),
-                Math.Round(HomeWinPct, 4).ToString("0.00%", CultureInfo.InvariantCulture).PadLeft(7)
+                (ConfidencePoolAnalyzer.SmartRound(100*HomeWinPct, 2) + "%").PadLeft(8)
                 );
         }
     }

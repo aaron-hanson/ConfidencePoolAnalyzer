@@ -63,7 +63,7 @@ namespace ConfidencePoolAnalyzer
         internal void Print()
         {
             //Console.Write("AH=" + playerScores.Where(x => x.name.Equals("Aaron Hanson")).First().rank + " TM=" + playerScores.Where(x => x.name.Equals("Teresa Mendoz")).First().rank + " ");
-            Console.Write("(" + Math.Round(100 * Probability, 3) + "): ");
+            Console.Write("(" + ConfidencePoolAnalyzer.SmartRound(100 * Probability, 3) + "): ");
             foreach (GamePick gp in GameWinners.Where(x => !ConfidencePoolAnalyzer.Matchups.Select(y => y.Winner).Contains(x.TeamAbbrev)))
             {
                 Console.Write(gp.TeamAbbrev + "/");
