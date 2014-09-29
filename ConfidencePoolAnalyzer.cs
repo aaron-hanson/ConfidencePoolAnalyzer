@@ -135,6 +135,7 @@ namespace ConfidencePoolAnalyzer
 
                         buf.Append(GetTable());
                         Console.Write(buf.ToString());
+                        buf.AppendLine(GetGameChangersTable());
 
                         if (_doUpload)
                         {
@@ -316,8 +317,6 @@ namespace ConfidencePoolAnalyzer
         internal string GetTable()
         {
             StringBuilder buf = new StringBuilder();
-            //buf.AppendLine("Confidence Pool Analysis for:  " + string.Join(" OR ", EntryWinCheck.ConvertAll(x => @"""" + x + @"""")));
-            //buf.AppendLine("Overall Win % = " + 100 * GetOverallWinProbability());
             buf.AppendLine("\t\tOVERALL\tSOLO\tTIED\t\tAVG.\tMAX\tCURRENT\tAVG.");
             buf.AppendLine("ENTRY NAME\tWIN%\tWIN%\tWIN%\tTREE%\tPOINTS\tPOINTS\tPOINTS\tRANK");
             buf.AppendLine("-------------------------------------------------------------------------------");
@@ -355,6 +354,15 @@ namespace ConfidencePoolAnalyzer
 
         internal void PrintGameChangers()
         {
+            Matchups.ForEach(LiveNflData.Instance.UpdateMatchup);
+            Matchups.ForEach(x => x.Recalc());
+            BuildWeekPossibilities();
+            CalculateOutcomes();
+
+            Console.WriteLine("Confidence Pool Analysis for:  " + string.Join(" OR ", _entryWinCheck.ConvertAll(x => @"""" + x + @"""")));
+            Console.WriteLine("Overall Win % = " + 100 * GetOverallWinProbability());
+
+            Console.WriteLine(GetOverallWinProbability());
             foreach (Matchup m in Matchups.Where(x => String.IsNullOrEmpty(x.Winner)))
             {
                 m.Winner = m.Away;
@@ -368,14 +376,91 @@ namespace ConfidencePoolAnalyzer
                 Console.WriteLine(m.Winner + ": " + SmartRound(100 * GetOverallWinProbability(), 3) + "%");
 
                 Console.WriteLine();
-                m.Winner = "";
+                m.Winner = String.Empty;
             }
+        }
+
+        internal class GameChangerLine
+        {
+            internal string EntryName { get; set; }
+            internal Dictionary<string, double> Winners { get; set; }
+
+            internal GameChangerLine(string entryName)
+            {
+                EntryName = entryName;
+                Winners = new Dictionary<string, double>();
+            }
+        }
+
+        internal string GetGameChangersTable()
+        {
+            if (!Matchups.Any(x => string.IsNullOrEmpty(x.Winner))) return string.Empty;
+
+            List<GameChangerLine> gameChangers = new List<GameChangerLine>();
+            StringBuilder buf = new StringBuilder();
+            buf.AppendLine("WIN PERCENTAGES BASED ON SINGLE GAME OUTCOMES");
+            buf.AppendLine("ENTRY NAME          GAME WINNERS");
+            buf.AppendLine("---------------------------------------------");
+
+            foreach (Matchup m in Matchups.Where(x => String.IsNullOrEmpty(x.Winner)))
+            {
+                m.Winner = m.Away;
+                BuildWeekPossibilities();
+                CalculateOutcomes();
+                foreach (PlayerEntry e in PlayerEntries)
+                {
+                    GameChangerLine line = gameChangers.FirstOrDefault(x => x.EntryName == e.Name);
+                    if (line == null)
+                    {
+                        line = new GameChangerLine(e.Name);
+                        gameChangers.Add(line);
+                    }
+                    line.Winners[m.Winner] = 100*GetOverallWinProbability(line.EntryName);
+                }
+
+                m.Winner = m.Home;
+                BuildWeekPossibilities();
+                CalculateOutcomes();
+                foreach (PlayerEntry e in PlayerEntries)
+                {
+                    GameChangerLine line = gameChangers.FirstOrDefault(x => x.EntryName == e.Name);
+                    if (line == null)
+                    {
+                        line = new GameChangerLine(e.Name);
+                        gameChangers.Add(line);
+                    }
+                    line.Winners[m.Winner] = 100*GetOverallWinProbability(line.EntryName);
+                }
+
+                m.Winner = String.Empty;
+            }
+
+            buf.AppendLine(new string(' ', 20) + string.Join("|", Matchups.Where(x => String.IsNullOrEmpty(x.Winner))
+                                                                          .Select(x => string.Format("{0}   {1} ", x.Away.PadLeft(5), x.Home.PadLeft(4))).ToArray()));
+            foreach (GameChangerLine line in gameChangers.OrderBy(x => x.EntryName))
+            {
+                buf.Append(line.EntryName.PadRight(20));
+                foreach (Matchup mm in Matchups.Where(x => String.IsNullOrEmpty(x.Winner)))
+                {
+                    buf.Append(Math.Round(line.Winners[mm.Away], 2).ToString("0.00").PadLeft(6) + ' ' + Math.Round(line.Winners[mm.Home], 2).ToString("0.00").PadLeft(6) + '|');
+                }
+                buf.Remove(buf.Length - 1, 1);
+                buf.AppendLine();
+            }
+
+            return buf.ToString();
         }
 
         internal double GetOverallWinProbability()
         {
             return Possibilities.Where(x => x.PlayerScores.Count(y => _entryWinCheck.Contains(y.Name) && y.Rank == 1) > 0)
                                 .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => _entryWinCheck.Contains(y.Name) && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
+        }
+
+        internal double GetOverallWinProbability(string entryName)
+        {
+            return Possibilities.Where(x => x.PlayerScores.Count(y => y.Name == entryName && y.Rank == 1) > 0)
+                                .Sum(x => x.Probability * (double)x.PlayerScores.Count(y => y.Name == entryName && y.Rank == 1) / (double)x.PlayerScores.Count(y => y.Rank == 1));
         }
 
         internal static void AddRandomEntries(int numEntries)
