@@ -399,8 +399,9 @@ namespace ConfidencePoolAnalyzer
             List<GameChangerLine> gameChangers = new List<GameChangerLine>();
             StringBuilder buf = new StringBuilder();
             buf.AppendLine("WIN PERCENTAGES BASED ON SINGLE GAME OUTCOMES");
-            buf.AppendLine("ENTRY NAME          GAME WINNERS");
-            buf.AppendLine("---------------------------------------------");
+            buf.AppendLine("ENTRY NAME          " + string.Join("|", Matchups.Where(x => String.IsNullOrEmpty(x.Winner))
+                                                              .Select(x => string.Format("{0}   {1} ", x.Away.PadLeft(5), x.Home.PadLeft(4))).ToArray()));
+            buf.AppendLine(new string('-', 20 + 14*Matchups.Count(x => String.IsNullOrEmpty(x.Winner))));
 
             foreach (Matchup m in Matchups.Where(x => String.IsNullOrEmpty(x.Winner)))
             {
@@ -435,8 +436,6 @@ namespace ConfidencePoolAnalyzer
                 m.Winner = String.Empty;
             }
 
-            buf.AppendLine(new string(' ', 20) + string.Join("|", Matchups.Where(x => String.IsNullOrEmpty(x.Winner))
-                                                                          .Select(x => string.Format("{0}   {1} ", x.Away.PadLeft(5), x.Home.PadLeft(4))).ToArray()));
             foreach (GameChangerLine line in gameChangers.OrderBy(x => x.EntryName))
             {
                 buf.Append(line.EntryName.PadRight(20));
