@@ -104,7 +104,7 @@ namespace ConfidencePoolAnalyzer
                     buf.Clear();
 
                     Matchups.ForEach(LiveNflData.Instance.UpdateMatchup);
-                    if (_forceUpdates || _poolEntriesDirty || Matchups.Any(x => x.IsDirty))
+                    if (_forceUpdates || _poolEntriesDirty || Matchups.Any(x => x.IsDirty || x.IsWinnerDirty))
                     {
                         buf.AppendLine("UPDATED: " + DateTime.Now);
                         buf.AppendLine();
@@ -124,7 +124,6 @@ namespace ConfidencePoolAnalyzer
                         if (Matchups.Any(x => x.IsWinnerDirty))
                         {
                             Console.WriteLine("Dirty winners: " + string.Join(" ", Matchups.Where(x => x.IsWinnerDirty).Select(x => x.Home)));
-                            Matchups.ForEach(x => x.IsWinnerDirty = false);
                             BuildWeekPossibilities();
                             CalculateOutcomes();
                         }
@@ -132,7 +131,6 @@ namespace ConfidencePoolAnalyzer
                         {
                             Console.WriteLine("Dirty win pcts: " + string.Join(" ", Matchups.Where(x => x.IsWinPctDirty).Select(x => x.Home)));
                             Possibilities.ForEach(x => x.RecalcProbability());
-                            Matchups.ForEach(x => x.IsWinPctDirty = false);
                             CalculateOutcomes();
                         }
                         else if (_poolEntriesDirty)
@@ -146,6 +144,10 @@ namespace ConfidencePoolAnalyzer
 
                         if (Matchups.Any(x => x.IsWinnerDirty || x.IsWinPctDirty)) gameChangerTable = GetGameChangersTable();
                         buf.AppendLine(gameChangerTable);
+
+                        Matchups.ForEach(x => x.IsWinnerDirty = false);
+                        Matchups.ForEach(x => x.IsWinPctDirty = false);
+                        Matchups.ForEach(x => x.IsDirty = false);
 
                         if (_doUpload)
                         {
@@ -463,9 +465,6 @@ namespace ConfidencePoolAnalyzer
                 buf.AppendLine();
             }
 
-            Matchups.ForEach(x => x.IsWinnerDirty = false);
-            Matchups.ForEach(x => x.IsWinPctDirty = false);
-            Matchups.ForEach(x => x.IsDirty = false);
             BuildWeekPossibilities();
             CalculateOutcomes();
             Console.WriteLine("done.");
