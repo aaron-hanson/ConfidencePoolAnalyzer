@@ -48,7 +48,7 @@ namespace ConfidencePoolAnalyzer
             //TODO: don't blindly overwrite Odds/games, so we can keep last known odds/games
             if (DateTime.Now >= _nextOddsScrapeTime)
             {
-                _nextOddsScrapeTime += TimeSpan.FromSeconds(_oddsPollSeconds);
+                _nextOddsScrapeTime = DateTime.Now + TimeSpan.FromSeconds(_oddsPollSeconds);
                 try
                 {
                     if (_client != null)

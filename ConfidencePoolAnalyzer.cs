@@ -170,7 +170,7 @@ namespace ConfidencePoolAnalyzer
                     else Console.WriteLine("No changes.");
 
                     while (DateTime.Now < _nextScrapeTime) Thread.Sleep(1000);
-                    _nextScrapeTime += TimeSpan.FromSeconds(_livePollSeconds);
+                    _nextScrapeTime = DateTime.Now + TimeSpan.FromSeconds(_livePollSeconds);
                     LiveNflData.Instance.Scrape();
 
                     DateTime now = DateTime.Now;
@@ -181,7 +181,7 @@ namespace ConfidencePoolAnalyzer
                     }
 
                     TryScrapePoolEntries();
-                    _nextPoolScrapeTime += TimeSpan.FromMinutes(30);
+                    _nextPoolScrapeTime = now + TimeSpan.FromMinutes(30);
                     if (DateTime.Now - _poolScrapeTimeFinal > TimeSpan.FromMinutes(5))
                     {
                         _poolScrapeTimeFinal += TimeSpan.FromDays(7);
