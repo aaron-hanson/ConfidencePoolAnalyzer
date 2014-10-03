@@ -118,6 +118,7 @@ namespace ConfidencePoolAnalyzer
                         if (Matchups.Any(x => x.IsWinnerDirty))
                         {
                             Console.WriteLine("Dirty winners: " + string.Join(" ", Matchups.Where(x => x.IsWinnerDirty).Select(x => x.Home)));
+                            Matchups.ForEach(x => x.IsWinnerDirty = false);
                             BuildWeekPossibilities();
                             CalculateOutcomes();
                         }
@@ -137,8 +138,8 @@ namespace ConfidencePoolAnalyzer
                         buf.Append(GetTable());
                         Console.Write(buf.ToString());
 
-                        if (Matchups.Any(x => x.IsWinnerDirty)) gameChangerTable = GetGameChangersTable();
-                        buf.AppendLine(gameChangerTable);
+                        //if (Matchups.Any(x => x.IsWinnerDirty)) gameChangerTable = GetGameChangersTable();
+                        //buf.AppendLine(gameChangerTable);
 
                         if (_doUpload)
                         {
