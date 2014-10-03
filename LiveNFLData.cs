@@ -53,11 +53,11 @@ namespace ConfidencePoolAnalyzer
                 {
                     if (_client != null)
                     {
-                        Console.Write("Scraping Pinnacle Odds...");
+                        Console.Write("Scraping Pinnacle: ");
                         _odds = (PinnacleOdds)_oddsSerializer.Deserialize(_client.OpenRead(@"http://xml.pinnaclesports.com/pinnacleFeed.aspx?sporttype=Football&sportsubtype=NFL"));
                         _odds.Games.RemoveAll(x => !x.IsValidNflGame);
                         _odds.Games.RemoveAll(x => x.EventDateTime < _thisWeekStart || x.EventDateTime > _thisWeekEnd);
-                        Console.WriteLine(_odds.Games.Count);
+                        Console.Write(_odds.Games.Count + ".  ");
                     }
                 }
                 catch (Exception ex)
@@ -70,9 +70,9 @@ namespace ConfidencePoolAnalyzer
             {
                 if (_client != null)
                 {
-                    Console.Write("Scraping NFL Games...");
+                    Console.Write("Scraping NFL: ");
                     _scoreStrip = (NflScoreStrip)_nflSerializer.Deserialize(_client.OpenRead(@"http://www.nfl.com/liveupdate/scorestrip/ss.xml"));
-                    Console.WriteLine(_scoreStrip.Games.Count);
+                    Console.Write(_scoreStrip.Games.Count + ".  ");
                 }
             }
             catch (Exception ex)

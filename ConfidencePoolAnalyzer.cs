@@ -106,6 +106,7 @@ namespace ConfidencePoolAnalyzer
                     Matchups.ForEach(LiveNflData.Instance.UpdateMatchup);
                     if (_forceUpdates || _poolEntriesDirty || Matchups.Any(x => x.IsDirty || x.IsWinnerDirty))
                     {
+                        Console.WriteLine();
                         buf.AppendLine("UPDATED: " + DateTime.Now);
                         buf.AppendLine();
 
@@ -175,7 +176,7 @@ namespace ConfidencePoolAnalyzer
                             UploadLatestToAltdex(buf.ToString());
                         }
                     }
-                    else Console.WriteLine("No changes.");
+                    else Console.WriteLine("  No changes.");
 
                     while (DateTime.Now < _nextScrapeTime) Thread.Sleep(1000);
                     _nextScrapeTime = DateTime.Now + TimeSpan.FromSeconds(_livePollSeconds);
@@ -210,7 +211,7 @@ namespace ConfidencePoolAnalyzer
             try
             {
                 _poolEntriesDirty = false;
-                Console.Write("Scraping CBS entries...");
+                Console.Write("Scraping CBS: ");
                 using (CookieAwareWebClient wc = new CookieAwareWebClient())
                 {
                     wc.Headers.Add(HttpRequestHeader.UserAgent, "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.103 Safari/537.36");
@@ -253,7 +254,7 @@ namespace ConfidencePoolAnalyzer
                         newEntries.Add(entry);
                         if (!entry.GamePicks.Any()) entriesKnown = false;
                     }
-                    Console.WriteLine(newEntries.Count);
+                    Console.Write(newEntries.Count + ".  ");
                 }
                 PlayerEntries = newEntries;
             }
