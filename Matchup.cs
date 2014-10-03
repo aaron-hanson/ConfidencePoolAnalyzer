@@ -26,7 +26,14 @@ namespace ConfidencePoolAnalyzer
         internal double HomeWinPct
         {
             get { return _homeWinPct; }
-            set { if (value != _homeWinPct) { _homeWinPct = value; IsWinPctDirty = true; } }
+            set { PrevHomeWinPct = _homeWinPct;  if (value != _homeWinPct) { _homeWinPct = value; IsWinPctDirty = true; } }
+        }
+
+        private double _prevHomeWinPct;
+        internal double PrevHomeWinPct
+        {
+            get { return _prevHomeWinPct; }
+            set { _prevHomeWinPct = value; }
         }
 
         private double _spread;
@@ -168,7 +175,7 @@ namespace ConfidencePoolAnalyzer
                 ((Possession == Home ? (RedZone ? "*" : ".") : " ") + Home).PadRight(4),
                 Spread.ToString("+0.0;-0.0;PK ", CultureInfo.InvariantCulture).PadLeft(5),
                 (ConfidencePoolAnalyzer.SmartRound(100*HomeWinPct, 2) + "%").PadLeft(8)
-                );
+                ) + (HomeWinPct != PrevHomeWinPct ? "  (PREV: " + (ConfidencePoolAnalyzer.SmartRound(100 * PrevHomeWinPct, 2) + "%)").PadLeft(9) : "");
         }
     }
 

@@ -95,6 +95,7 @@ namespace ConfidencePoolAnalyzer
 
         internal void LiveUpdateMode()
         {
+            bool firstRun = true;
             StringBuilder buf = new StringBuilder();
             while (true)
             {
@@ -109,6 +110,11 @@ namespace ConfidencePoolAnalyzer
                         buf.AppendLine();
 
                         Matchups.Where(x => x.IsDirty).ToList().ForEach(x => x.Recalc());
+                        if (firstRun)
+                        {
+                            Matchups.ForEach(x => x.PrevHomeWinPct = x.HomeWinPct);
+                            firstRun = false;
+                        }
 
                         buf.AppendLine("STATUS     AWAY SCORE HOME  LINE HOMEWIN%");
                         buf.AppendLine("-----------------------------------------");
