@@ -32,6 +32,8 @@ namespace ConfidencePoolAnalyzer
         private readonly string _ftpHost, _ftpUser, _ftpPass, _cbsUser, _cbsPass;
         private readonly List<string> _entryWinCheck = new List<string>();
 
+        private string gameChangerTable;
+
         internal ConfidencePoolAnalyzer()
         {
             _doUpload = "true".Equals(ConfigurationManager.AppSettings["DoUpload"], StringComparison.OrdinalIgnoreCase);
@@ -117,7 +119,6 @@ namespace ConfidencePoolAnalyzer
                         {
                             Console.WriteLine("Dirty winners: " + string.Join(" ", Matchups.Where(x => x.IsWinnerDirty).Select(x => x.Home)));
                             BuildWeekPossibilities();
-                            Matchups.ForEach(x => x.IsWinnerDirty = false);
                             CalculateOutcomes();
                         }
                         else if (Matchups.Any(x => x.IsWinPctDirty))
@@ -135,7 +136,9 @@ namespace ConfidencePoolAnalyzer
 
                         buf.Append(GetTable());
                         Console.Write(buf.ToString());
-                        buf.AppendLine(GetGameChangersTable());
+
+                        if (Matchups.Any(x => x.IsWinnerDirty)) gameChangerTable = GetGameChangersTable();
+                        buf.AppendLine(gameChangerTable);
 
                         if (_doUpload)
                         {
@@ -396,6 +399,8 @@ namespace ConfidencePoolAnalyzer
         {
             if (!Matchups.Any(x => string.IsNullOrEmpty(x.Winner))) return string.Empty;
 
+            Console.Write("Building Game Changers");
+
             List<GameChangerLine> gameChangers = new List<GameChangerLine>();
             StringBuilder buf = new StringBuilder();
             buf.AppendLine("WIN PERCENTAGES BASED ON SINGLE GAME OUTCOMES");
@@ -405,7 +410,9 @@ namespace ConfidencePoolAnalyzer
 
             foreach (Matchup m in Matchups.Where(x => String.IsNullOrEmpty(x.Winner)))
             {
+                Console.Write('.');
                 m.Winner = m.Away;
+                m.Recalc();
                 BuildWeekPossibilities();
                 CalculateOutcomes();
                 foreach (PlayerEntry e in PlayerEntries)
@@ -420,6 +427,7 @@ namespace ConfidencePoolAnalyzer
                 }
 
                 m.Winner = m.Home;
+                m.Recalc();
                 BuildWeekPossibilities();
                 CalculateOutcomes();
                 foreach (PlayerEntry e in PlayerEntries)
@@ -434,6 +442,7 @@ namespace ConfidencePoolAnalyzer
                 }
 
                 m.Winner = String.Empty;
+                m.Recalc();
             }
 
             foreach (GameChangerLine line in gameChangers.OrderBy(x => x.EntryName))
@@ -447,6 +456,10 @@ namespace ConfidencePoolAnalyzer
                 buf.AppendLine();
             }
 
+            Matchups.ForEach(x => x.IsWinnerDirty = false);
+            Matchups.ForEach(x => x.IsWinPctDirty = false);
+            Matchups.ForEach(x => x.IsDirty = false);
+            Console.WriteLine("done.");
             return buf.ToString();
         }
 
