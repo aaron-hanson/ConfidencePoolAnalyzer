@@ -138,8 +138,8 @@ namespace ConfidencePoolAnalyzer
                         buf.Append(GetTable());
                         Console.Write(buf.ToString());
 
-                        //if (Matchups.Any(x => x.IsWinnerDirty)) gameChangerTable = GetGameChangersTable();
-                        //buf.AppendLine(gameChangerTable);
+                        if (Matchups.Any(x => x.IsWinnerDirty || x.IsWinPctDirty)) gameChangerTable = GetGameChangersTable();
+                        buf.AppendLine(gameChangerTable);
 
                         if (_doUpload)
                         {
@@ -460,6 +460,8 @@ namespace ConfidencePoolAnalyzer
             Matchups.ForEach(x => x.IsWinnerDirty = false);
             Matchups.ForEach(x => x.IsWinPctDirty = false);
             Matchups.ForEach(x => x.IsDirty = false);
+            BuildWeekPossibilities();
+            CalculateOutcomes();
             Console.WriteLine("done.");
             return buf.ToString();
         }
