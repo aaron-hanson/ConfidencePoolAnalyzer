@@ -9,9 +9,11 @@ namespace ConfidencePoolAnalyzer
         internal List<GamePick> GameWinners;
         internal List<PlayerScore> PlayerScores;
         internal double Probability = 1;
+        internal int Bits;
 
         internal WeekPossibility(int bits)
         {
+            Bits = bits;
             GameWinners = new List<GamePick>();
             PlayerScores = new List<PlayerScore>();
             List<Matchup> matchupsLeft = ConfidencePoolAnalyzer.Matchups.Where(x => String.IsNullOrEmpty(x.Winner)).ToList();
@@ -69,6 +71,11 @@ namespace ConfidencePoolAnalyzer
                 Console.Write(gp.TeamAbbrev + "/");
             }
             Console.WriteLine();
+        }
+
+        public override string ToString()
+        {
+            return string.Join("/", GameWinners.Where(x => !ConfidencePoolAnalyzer.Matchups.Select(y => y.Winner).Contains(x.TeamAbbrev)).Select(x => x.TeamAbbrev));
         }
     }
 }

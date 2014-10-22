@@ -32,6 +32,7 @@ namespace ConfidencePoolAnalyzer
         private readonly string _ftpHost, _ftpUser, _ftpPass, _cbsUser, _cbsPass;
         private readonly List<string> _entryWinCheck = new List<string>();
 
+        private List<GameChangerLine> gameChangers;
         private string gameChangerTable;
 
         internal ConfidencePoolAnalyzer()
@@ -143,12 +144,14 @@ namespace ConfidencePoolAnalyzer
                         buf.Append(GetTable());
                         Console.Write(buf.ToString());
 
-                        if (Matchups.Any(x => x.IsWinnerDirty || x.IsWinPctDirty)) gameChangerTable = GetGameChangersTable();
+                        if (Matchups.Any(x => x.IsWinnerDirty || x.IsWinPctDirty))
+                        {
+                            gameChangerTable = GetGameChangersTable();
+                            Matchups.ForEach(x => x.IsWinnerDirty = false);
+                            Matchups.ForEach(x => x.IsWinPctDirty = false);
+                            Matchups.ForEach(x => x.PrevHomeWinPct = x.HomeWinPct);
+                        }
                         buf.AppendLine(gameChangerTable);
-
-                        Matchups.ForEach(x => x.IsWinnerDirty = false);
-                        Matchups.ForEach(x => x.IsWinPctDirty = false);
-                        Matchups.ForEach(x => x.IsDirty = false);
 
                         if (_doUpload)
                         {
@@ -341,7 +344,7 @@ namespace ConfidencePoolAnalyzer
                     double pct = (double) wins*100/Possibilities.Count();
                     buf.AppendLine(String.Format(CultureInfo.InvariantCulture,
                         "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}",
-                        entry.Name.PadRight(13),
+                        entry.Name.PadRight(15).Substring(0, 15),
                         SmartRound(100*entry.OverallWinProb, 2).PadLeft(7),
                         SmartRound(100 * entry.OutrightWinProb, 2).PadLeft(7),
                         SmartRound(100 * entry.TiedProb, 2).PadLeft(7),
@@ -351,7 +354,7 @@ namespace ConfidencePoolAnalyzer
                         entry.CurScore.ToString(CultureInfo.InvariantCulture).PadLeft(3),
                         SmartRound(entry.WeightedRank, 1).PadLeft(4)));
                 }
-                else buf.AppendLine(String.Format(CultureInfo.InvariantCulture, "{0}\t?\t?\t?\t?\t?\t?\t?\t?", entry.Name.PadRight(13)));
+                else buf.AppendLine(String.Format(CultureInfo.InvariantCulture, "{0}\t?\t?\t?\t?\t?\t?\t?\t?", entry.Name.PadRight(15).Substring(0,15)));
             }
             buf.AppendLine();
             return buf.ToString();
@@ -363,34 +366,6 @@ namespace ConfidencePoolAnalyzer
             double rounded = Math.Round(value, digits);
             if ((value > 0 && rounded == 0) || (value < 100 && rounded == 100)) return "~" + rounded.ToString(digitFormat, CultureInfo.InvariantCulture);
             return rounded.ToString(digitFormat, CultureInfo.InvariantCulture);
-        }
-
-        internal void PrintGameChangers()
-        {
-            Matchups.ForEach(LiveNflData.Instance.UpdateMatchup);
-            Matchups.ForEach(x => x.Recalc());
-            BuildWeekPossibilities();
-            CalculateOutcomes();
-
-            Console.WriteLine("Confidence Pool Analysis for:  " + string.Join(" OR ", _entryWinCheck.ConvertAll(x => @"""" + x + @"""")));
-            Console.WriteLine("Overall Win % = " + 100 * GetOverallWinProbability());
-
-            Console.WriteLine(GetOverallWinProbability());
-            foreach (Matchup m in Matchups.Where(x => String.IsNullOrEmpty(x.Winner)))
-            {
-                m.Winner = m.Away;
-                BuildWeekPossibilities();
-                CalculateOutcomes();
-                Console.WriteLine(m.Winner + ": " + SmartRound(100 * GetOverallWinProbability(), 3) + "%");
-
-                m.Winner = m.Home;
-                BuildWeekPossibilities();
-                CalculateOutcomes();
-                Console.WriteLine(m.Winner + ": " + SmartRound(100 * GetOverallWinProbability(), 3) + "%");
-
-                Console.WriteLine();
-                m.Winner = String.Empty;
-            }
         }
 
         internal class GameChangerLine
@@ -411,7 +386,7 @@ namespace ConfidencePoolAnalyzer
 
             Console.Write("Building Game Changers");
 
-            List<GameChangerLine> gameChangers = new List<GameChangerLine>();
+            gameChangers = new List<GameChangerLine>();
             StringBuilder buf = new StringBuilder();
             buf.AppendLine("WIN PERCENTAGES BASED ON SINGLE GAME OUTCOMES");
             buf.AppendLine("ENTRY NAME          " + string.Join("|", Matchups.Where(x => String.IsNullOrEmpty(x.Winner))
